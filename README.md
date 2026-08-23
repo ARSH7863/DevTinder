@@ -5,3 +5,7 @@
 - Install Tailwind CSS
 - Install Daily UI
 - Add Navbar Component to App.jsx
+- Create a NavBar.jsx seperate component file
+- Install React Router DOM 
+- Create BrowserRouter > Routes > Route = /Body > RouteChildren
+- Create an Outlet in your body component
