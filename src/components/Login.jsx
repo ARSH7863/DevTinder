@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { BASE_URL } from "./utils/constants";
+import { BASE_URL } from "../utils/constants";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -14,6 +16,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleLogin = async () => {
     console.log("🔥 HANDLE LOGIN CALLED");
@@ -30,6 +33,9 @@ const Login = () => {
           withCredentials: true,
         },
       );
+
+      // res.data has { message: "...", user: { firstName, lastName, ... } }
+      dispatch(addUser(res?.data?.user || res.data));
       navigate("/");
     } catch (err) {
       setError(err?.response?.data || err.message || "Login failed");
@@ -39,7 +45,12 @@ const Login = () => {
   };
 
   const handleSignUp = async () => {
-    console.log("🔥 HANDLE SIGNUP CALLED", { firstName, lastName, emailId, password });
+    console.log("🔥 HANDLE SIGNUP CALLED", {
+      firstName,
+      lastName,
+      emailId,
+      password,
+    });
     try {
       setError("");
       setLoading(true);
@@ -53,7 +64,7 @@ const Login = () => {
         },
         {
           withCredentials: true,
-        }
+        },
       );
       console.log("🔥 SIGNUP RESPONSE:", res.data);
       navigate("/");
