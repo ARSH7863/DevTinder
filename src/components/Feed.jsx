@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { BASE_URL } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addFeed, removeUserFromFeed } from "../utils/feedSlice";
 
 const SKILLS_COLORS = [
@@ -22,15 +22,15 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
       <figure className="relative h-72 bg-base-200 overflow-hidden">
         <img
           src={
+            user?.photoURL ||
             user?.photoUrl ||
-            "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+            DEFAULT_USER_AVATAR
           }
           alt={`${user?.firstName} ${user?.lastName}`}
           className="w-full h-full object-cover"
           onError={(e) => {
             e.target.onerror = null;
-            e.target.src =
-              "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp";
+            e.target.src = DEFAULT_USER_AVATAR;
           }}
         />
         {/* Gradient overlay */}

@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { BASE_URL } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addUser } from "../utils/userSlice";
 
 const EditProfile = ({ user }) => {
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
-  const [photoUrl, setPhotoUrl] = useState(user?.photoUrl || "");
+  const [photoUrl, setPhotoUrl] = useState(user?.photoURL || user?.photoUrl || "");
   const [age, setAge] = useState(user?.age || "");
-  const [gender, setGender] = useState(user?.gender || "");
+  const [gender, setGender] = useState(user?.gender?.toLowerCase() || "");
   const [about, setAbout] = useState(user?.about || "");
   const [skills, setSkills] = useState(
     Array.isArray(user?.skills) ? user?.skills.join(", ") : user?.skills || ""
@@ -28,21 +28,26 @@ const EditProfile = ({ user }) => {
         ? skills.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
 
+      // Only send fields the backend allows; strip empty/undefined values
+      const payload = {
+        firstName,
+        lastName,
+        photoURL: photoUrl,
+        about,
+        skills: skillsArray,
+      };
+      if (age) payload.age = Number(age);
+      if (gender) payload.gender = gender;
+
+      console.log("📤 Sending payload to /profile/edit:", JSON.stringify(payload, null, 2));
       const res = await axios.patch(
         `${BASE_URL}/profile/edit`,
-        {
-          firstName,
-          lastName,
-          photoUrl,
-          age: age ? Number(age) : undefined,
-          gender,
-          about,
-          skills: skillsArray,
-        },
+        payload,
         {
           withCredentials: true,
         }
       );
+
 
       dispatch(addUser(res?.data?.data || res?.data?.user || res?.data));
       setShowToast(true);
@@ -50,7 +55,16 @@ const EditProfile = ({ user }) => {
         setShowToast(false);
       }, 3000);
     } catch (err) {
-      setError(err?.response?.data || err?.message || "Failed to update profile");
+      console.error("Profile edit error:", err?.response);
+      const errMsg =
+        typeof err?.response?.data === "string"
+          ? err.response.data
+          : err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            err?.message ||
+            "Failed to update profile";
+      setError(errMsg);
+
     } finally {
       setLoading(false);
     }
@@ -129,7 +143,7 @@ const EditProfile = ({ user }) => {
                 <option value="">Select Gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
-                <option value="others">Other</option>
+                <option value="other">Other</option>
               </select>
             </fieldset>
           </div>
@@ -177,13 +191,13 @@ const EditProfile = ({ user }) => {
             <img
               src={
                 photoUrl ||
-                "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                DEFAULT_USER_AVATAR
               }
               alt={`${firstName} ${lastName}`}
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp";
+                e.target.src = DEFAULT_USER_AVATAR;
               }}
             />
           </figure>

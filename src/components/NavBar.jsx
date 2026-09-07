@@ -2,7 +2,7 @@ import React from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { BASE_URL } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { removeUser } from "../utils/userSlice";
 import useTheme from "../utils/useTheme";
 
@@ -77,9 +77,14 @@ const NavBar = () => {
                   <img
                     alt="User avatar"
                     src={
+                      user?.photoURL ||
                       user?.photoUrl ||
-                      "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
+                      DEFAULT_USER_AVATAR
                     }
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = DEFAULT_USER_AVATAR;
+                    }}
                   />
                 </div>
               </div>
