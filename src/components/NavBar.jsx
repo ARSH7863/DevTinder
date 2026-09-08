@@ -1,9 +1,9 @@
-import React from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { removeUser } from "../utils/userSlice";
+import { removeConnections } from "../utils/connectionSlice";
 import useTheme from "../utils/useTheme";
 
 const NavBar = () => {
@@ -22,6 +22,7 @@ const NavBar = () => {
         },
       );
       dispatch(removeUser());
+      dispatch(removeConnections());
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
@@ -38,7 +39,10 @@ const NavBar = () => {
         </div>
 
         {/* Theme Toggle */}
-        <label className="swap swap-rotate btn btn-ghost btn-circle mx-1" title="Toggle theme">
+        <label
+          className="swap swap-rotate btn btn-ghost btn-circle mx-1"
+          title="Toggle theme"
+        >
           <input
             type="checkbox"
             onChange={toggleTheme}
@@ -77,9 +81,7 @@ const NavBar = () => {
                   <img
                     alt="User avatar"
                     src={
-                      user?.photoURL ||
-                      user?.photoUrl ||
-                      DEFAULT_USER_AVATAR
+                      user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR
                     }
                     onError={(e) => {
                       e.target.onerror = null;
@@ -99,7 +101,7 @@ const NavBar = () => {
                   </Link>
                 </li>
                 <li>
-                  <a>Settings</a>
+                  <Link to="/connections">Connections</Link>
                 </li>
                 <li>
                   <a onClick={handleLogout}>Logout</a>
@@ -114,4 +116,3 @@ const NavBar = () => {
 };
 
 export default NavBar;
-
