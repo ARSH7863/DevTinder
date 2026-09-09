@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
@@ -14,21 +14,171 @@ const SKILLS_COLORS = [
   "badge-warning",
 ];
 
+// Inject keyframes once
+const SWIPE_STYLE_ID = "swipe-card-keyframes";
+if (!document.getElementById(SWIPE_STYLE_ID)) {
+  const style = document.createElement("style");
+  style.id = SWIPE_STYLE_ID;
+  style.textContent = `
+    @keyframes flyLeft {
+      to { transform: translateX(-140vw) rotate(-30deg); opacity: 0; }
+    }
+    @keyframes flyRight {
+      to { transform: translateX(140vw) rotate(30deg); opacity: 0; }
+    }
+    @keyframes cardEntrance {
+      from { transform: scale(0.88) translateY(24px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .swipe-card {
+      animation: cardEntrance 0.35s cubic-bezier(.22,1,.36,1) both;
+      touch-action: none;
+      will-change: transform;
+      user-select: none;
+    }
+    .fly-left  { animation: flyLeft  0.38s cubic-bezier(.55,0,1,.7) forwards !important; }
+    .fly-right { animation: flyRight 0.38s cubic-bezier(.55,0,1,.7) forwards !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+const SWIPE_THRESHOLD = 100; // px to trigger action
+
 const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
+  const cardRef = useRef(null);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const currentX = useRef(0);
+  const isDragging = useRef(false);
+  const [dragX, setDragX] = useState(0);
+  const [animating, setAnimating] = useState(false);
+
   const skills = Array.isArray(user?.skills) ? user.skills : [];
 
+  // Derived values from drag position
+  const rotation = dragX * 0.12; // max ~12° at threshold
+  const likeOpacity = Math.min(Math.max(dragX / SWIPE_THRESHOLD, 0), 1);
+  const nopeOpacity = Math.min(Math.max(-dragX / SWIPE_THRESHOLD, 0), 1);
+
+  const resetCard = () => {
+    setDragX(0);
+    isDragging.current = false;
+    if (cardRef.current) {
+      cardRef.current.style.transform = "";
+      cardRef.current.style.transition = "transform 0.4s cubic-bezier(.22,1,.36,1)";
+      setTimeout(() => {
+        if (cardRef.current) cardRef.current.style.transition = "";
+      }, 400);
+    }
+  };
+
+  const flyAndAct = (direction, action) => {
+    if (animating || !cardRef.current) return;
+    setAnimating(true);
+    cardRef.current.classList.add(direction === "right" ? "fly-right" : "fly-left");
+    setTimeout(() => {
+      action();
+      setAnimating(false);
+    }, 360);
+  };
+
+  // Pointer events for drag
+  const onPointerDown = (e) => {
+    if (animating || actionLoading) return;
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    currentX.current = 0;
+    cardRef.current?.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - startX.current;
+    currentX.current = dx;
+    setDragX(dx);
+    if (cardRef.current) {
+      const rot = dx * 0.12;
+      cardRef.current.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+      cardRef.current.style.transition = "none";
+    }
+  };
+
+  const onPointerUp = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const dx = currentX.current;
+    if (dx > SWIPE_THRESHOLD) {
+      flyAndAct("right", onLike);
+    } else if (dx < -SWIPE_THRESHOLD) {
+      flyAndAct("left", onSkip);
+    } else {
+      resetCard();
+    }
+    setDragX(0);
+  };
+
   return (
-    <div className="card bg-base-100 shadow-2xl w-80 sm:w-96 border border-base-300 overflow-hidden select-none">
+    <div
+      ref={cardRef}
+      className="swipe-card card bg-base-100 shadow-2xl w-80 sm:w-96 border border-base-300 overflow-hidden cursor-grab active:cursor-grabbing"
+      style={{ position: "relative" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {/* LIKE stamp */}
+      <div
+        className="absolute top-8 left-5 z-10 pointer-events-none select-none"
+        style={{
+          opacity: likeOpacity,
+          transform: "rotate(-15deg)",
+          border: "4px solid #22c55e",
+          color: "#22c55e",
+          padding: "4px 12px",
+          borderRadius: "6px",
+          fontWeight: 900,
+          fontSize: "2rem",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          lineHeight: 1,
+          transition: "opacity 0.05s",
+          textShadow: "0 0 8px #22c55e44",
+        }}
+      >
+        LIKE
+      </div>
+
+      {/* NOPE stamp */}
+      <div
+        className="absolute top-8 right-5 z-10 pointer-events-none select-none"
+        style={{
+          opacity: nopeOpacity,
+          transform: "rotate(15deg)",
+          border: "4px solid #ef4444",
+          color: "#ef4444",
+          padding: "4px 12px",
+          borderRadius: "6px",
+          fontWeight: 900,
+          fontSize: "2rem",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          lineHeight: 1,
+          transition: "opacity 0.05s",
+          textShadow: "0 0 8px #ef444444",
+        }}
+      >
+        NOPE
+      </div>
+
       {/* Photo */}
-      <figure className="relative h-72 bg-base-200 overflow-hidden">
+      <figure className="relative h-72 bg-base-200 overflow-hidden pointer-events-none">
         <img
-          src={
-            user?.photoURL ||
-            user?.photoUrl ||
-            DEFAULT_USER_AVATAR
-          }
+          src={user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR}
           alt={`${user?.firstName} ${user?.lastName}`}
           className="w-full h-full object-cover"
+          draggable={false}
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = DEFAULT_USER_AVATAR;
@@ -51,7 +201,7 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
       </figure>
 
       {/* Card body */}
-      <div className="card-body p-4 gap-2">
+      <div className="card-body p-4 gap-2 pointer-events-none">
         {user?.about && (
           <p className="text-sm text-base-content/75 line-clamp-2">{user.about}</p>
         )}
@@ -61,9 +211,7 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
             {skills.map((skill, idx) => (
               <span
                 key={idx}
-                className={`badge badge-outline badge-sm ${
-                  SKILLS_COLORS[idx % SKILLS_COLORS.length]
-                }`}
+                className={`badge badge-outline badge-sm ${SKILLS_COLORS[idx % SKILLS_COLORS.length]}`}
               >
                 {skill}
               </span>
@@ -71,47 +219,31 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-6 mt-3">
+        {/* Action Buttons — re-enable pointer events */}
+        <div className="flex justify-center gap-6 mt-3 pointer-events-auto">
           <button
-            onClick={onSkip}
-            disabled={actionLoading}
-            className="btn btn-circle btn-outline border-2 border-error text-error hover:bg-error hover:text-white hover:border-error w-14 h-14 shadow-md transition-all duration-200"
+            onClick={(e) => { e.stopPropagation(); flyAndAct("left", onSkip); }}
+            disabled={actionLoading || animating}
+            className="btn btn-circle btn-outline border-2 border-error text-error hover:bg-error hover:text-white hover:border-error w-14 h-14 shadow-md transition-all duration-200 hover:scale-110"
           >
             {actionLoading === "skip" ? (
               <span className="loading loading-spinner loading-sm" />
             ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             )}
           </button>
 
           <button
-            onClick={onLike}
-            disabled={actionLoading}
-            className="btn btn-circle btn-outline border-2 border-success text-success hover:bg-success hover:text-white hover:border-success w-14 h-14 shadow-md transition-all duration-200"
+            onClick={(e) => { e.stopPropagation(); flyAndAct("right", onLike); }}
+            disabled={actionLoading || animating}
+            className="btn btn-circle btn-outline border-2 border-success text-success hover:bg-success hover:text-white hover:border-success w-14 h-14 shadow-md transition-all duration-200 hover:scale-110"
           >
             {actionLoading === "like" ? (
               <span className="loading loading-spinner loading-sm" />
             ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
               </svg>
             )}
