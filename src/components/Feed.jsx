@@ -133,7 +133,7 @@ const Feed = () => {
     if (feed && feed.length > 0) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/feed`, {
+      const res = await axios.get(`${BASE_URL}/user/feed`, {
         withCredentials: true,
       });
       const data = res?.data?.data || res?.data?.users || res?.data;
