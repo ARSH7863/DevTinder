@@ -4,10 +4,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { removeUser } from "../utils/userSlice";
 import { removeConnections } from "../utils/connectionSlice";
+import { clearRequests } from "../utils/requestSlice";
 import useTheme from "../utils/useTheme";
 
 const NavBar = () => {
   const user = useSelector((store) => store.user);
+  const requests = useSelector((store) => store.requests);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -23,6 +25,7 @@ const NavBar = () => {
       );
       dispatch(removeUser());
       dispatch(removeConnections());
+      dispatch(clearRequests());
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
@@ -102,6 +105,16 @@ const NavBar = () => {
                 </li>
                 <li>
                   <Link to="/connections">Connections</Link>
+                </li>
+                <li>
+                  <Link to="/requests" className="justify-between">
+                    Requests
+                    {requests && requests.length > 0 && (
+                      <span className="badge badge-secondary badge-xs">
+                        {requests.length}
+                      </span>
+                    )}
+                  </Link>
                 </li>
                 <li>
                   <a onClick={handleLogout}>Logout</a>
