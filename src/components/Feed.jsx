@@ -3,6 +3,7 @@ import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addFeed, removeUserFromFeed } from "../utils/feedSlice";
+import { sendConnectionRequest } from "../utils/requestApi";
 
 const SKILLS_COLORS = [
   "badge-primary",
@@ -149,23 +150,24 @@ const Feed = () => {
     fetchFeed();
   }, []);
 
-  const showToast = (type, name) => {
-    setToast({ type, name });
-    setTimeout(() => setToast(null), 2000);
+  const showToast = (type, name, message) => {
+    setToast({ type, name, message });
+    setTimeout(() => setToast(null), 2500);
   };
 
   const handleLike = async (userId, firstName) => {
     setActionLoading("like");
     try {
-      await axios.post(
-        `${BASE_URL}/request/send/interested/${userId}`,
-        {},
-        { withCredentials: true }
-      );
+      await sendConnectionRequest("interested", userId);
       dispatch(removeUserFromFeed(userId));
       showToast("like", firstName);
     } catch (err) {
-      console.error("Like failed:", err);
+      console.error("Like request failed:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err?.response?.data : null) ||
+        "Failed to send request";
+      showToast("error", firstName, errMsg);
     } finally {
       setActionLoading(null);
     }
@@ -174,15 +176,16 @@ const Feed = () => {
   const handleSkip = async (userId, firstName) => {
     setActionLoading("skip");
     try {
-      await axios.post(
-        `${BASE_URL}/request/send/ignored/${userId}`,
-        {},
-        { withCredentials: true }
-      );
+      await sendConnectionRequest("ignored", userId);
       dispatch(removeUserFromFeed(userId));
       showToast("skip", firstName);
     } catch (err) {
-      console.error("Skip failed:", err);
+      console.error("Skip request failed:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err?.response?.data : null) ||
+        "Failed to ignore user";
+      showToast("error", firstName, errMsg);
     } finally {
       setActionLoading(null);
     }
@@ -234,12 +237,16 @@ const Feed = () => {
         <div className="toast toast-top toast-center z-50">
           <div
             className={`alert text-sm py-2 px-5 shadow-xl text-white font-medium rounded-xl ${
-              toast.type === "like" ? "alert-success" : "alert-error"
+              toast.type === "like"
+                ? "alert-success"
+                : toast.type === "skip"
+                ? "alert-info"
+                : "alert-error"
             }`}
           >
-            {toast.type === "like"
-              ? `💚 Liked ${toast.name}!`
-              : `👋 Skipped ${toast.name}`}
+            {toast.type === "like" && `💚 Liked ${toast.name}!`}
+            {toast.type === "skip" && `👋 Skipped ${toast.name}`}
+            {toast.type === "error" && `⚠️ ${toast.message || "Action failed"}`}
           </div>
         </div>
       )}

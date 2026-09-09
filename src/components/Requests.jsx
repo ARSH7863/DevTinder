@@ -4,7 +4,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addRequests, removeRequest } from "../utils/requestSlice";
+import { removeConnections } from "../utils/connectionSlice";
 import { removeUser } from "../utils/userSlice";
+import { reviewConnectionRequest } from "../utils/requestApi";
 
 const SKILLS_COLORS = [
   "badge-primary",
@@ -107,13 +109,10 @@ const Requests = () => {
   const handleReview = async (status, requestId, senderName) => {
     setActionLoading((prev) => ({ ...prev, [requestId]: status }));
     try {
-      await axios.post(
-        `${BASE_URL}/request/review/${status}/${requestId}`,
-        {},
-        { withCredentials: true }
-      );
+      await reviewConnectionRequest(status, requestId);
       dispatch(removeRequest(requestId));
       if (status === "accepted") {
+        dispatch(removeConnections());
         showToast(`Accepted connection request from ${senderName}! 🎉`, "success");
       } else {
         showToast(`Rejected request from ${senderName}.`, "info");
