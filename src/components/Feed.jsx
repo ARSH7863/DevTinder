@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addFeed, removeUserFromFeed } from "../utils/feedSlice";
+import { removeUser } from "../utils/userSlice";
 import { sendConnectionRequest } from "../utils/requestApi";
 
 const SKILLS_COLORS = [
@@ -343,6 +345,7 @@ const PreviewCard = ({ user }) => {
 
 const Feed = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const feed = useSelector((store) => store.feed);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // "like" | "skip" | null
@@ -380,6 +383,11 @@ const Feed = () => {
       }
     } catch (err) {
       console.error("Failed to fetch feed:", err);
+      if (err?.response?.status === 401) {
+        dispatch(removeUser());
+        navigate("/login");
+        return;
+      }
       if (pageNum === 1) dispatch(addFeed([]));
       setHasMore(false);
     } finally {
@@ -392,15 +400,21 @@ const Feed = () => {
     if (!feed || feed.length === 0) {
       fetchFeed(1);
     }
-
-    // Safeguard: Stop loader after 5000ms if no developers are loaded
-    const timer = setTimeout(() => {
-      setTimedOut(true);
-      setLoading(false);
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
+
+  // Safeguard: Stop loader after 5000ms if stuck loading with 0 developers
+  useEffect(() => {
+    let timer;
+    if (loading && (!feed || feed.length === 0)) {
+      timer = setTimeout(() => {
+        setTimedOut(true);
+        setLoading(false);
+      }, 5000);
+    } else if (feed && feed.length > 0) {
+      setTimedOut(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading, feed]);
 
   // Auto-fetch next page when feed runs out but more pages exist
   useEffect(() => {
@@ -446,8 +460,8 @@ const Feed = () => {
     }
   };
 
-  // 1. If timed out after 5000ms or feed is verified empty with no more users
-  if (timedOut || (feed !== null && feed.length === 0 && !hasMore)) {
+  // 1. Only show "No developers found" if feed is ACTUALLY empty
+  if ((!feed || feed.length === 0) && (timedOut || (!hasMore && feed !== null)) && !loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-base-200/40">
         <div className="text-center flex flex-col items-center gap-3 p-8">

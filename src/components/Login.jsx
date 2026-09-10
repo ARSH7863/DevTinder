@@ -47,16 +47,29 @@ const Login = () => {
     try {
       setError("");
       setLoading(true);
-      const res = await axios.post(
+      // Clear any stale state before creating new session
+      dispatch(clearFeed());
+      dispatch(clearRequests());
+      dispatch(removeConnections());
+
+      // 1. Create the new user in backend
+      await axios.post(
         `${BASE_URL}/signup`,
         { firstName, lastName, emailId, password },
         { withCredentials: true },
       );
-      // After signup the backend returns user — set them in Redux
-      if (res?.data?.user || res?.data) {
-        dispatch(addUser(res?.data?.user || res.data));
-      }
-      // Pre-fetch requests so the bell badge shows immediately (new users have 0)
+
+      // 2. Automatically log them in so backend sets the JWT session cookie
+      const loginRes = await axios.post(
+        `${BASE_URL}/login`,
+        { emailId, password },
+        { withCredentials: true },
+      );
+
+      const user = loginRes?.data?.user || loginRes?.data;
+      dispatch(addUser(user));
+
+      // 3. Pre-fetch requests so bell badge is ready
       try {
         const reqRes = await axios.get(`${BASE_URL}/user/requests/received`, {
           withCredentials: true,
@@ -64,11 +77,17 @@ const Login = () => {
         const reqData = reqRes?.data?.data || reqRes?.data || [];
         dispatch(addRequests(Array.isArray(reqData) ? reqData : []));
       } catch (_) {
-        // Non-critical — ignore if requests fetch fails
+        // Non-critical
       }
+
       navigate("/");
     } catch (err) {
-      setError(err?.response?.data || err.message || "Signup failed");
+      const msg =
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === "string" ? err?.response?.data : null) ||
+        err.message ||
+        "Signup failed";
+      setError(msg);
     } finally {
       setLoading(false);
     }
