@@ -6,6 +6,7 @@ import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { removeUser } from "../utils/userSlice";
 import { removeConnections } from "../utils/connectionSlice";
 import { addRequests, clearRequests } from "../utils/requestSlice";
+import { clearFeed } from "../utils/feedSlice";
 import useTheme from "../utils/useTheme";
 
 const NavBar = () => {
@@ -54,6 +55,7 @@ const NavBar = () => {
       dispatch(removeUser());
       dispatch(removeConnections());
       dispatch(clearRequests());
+      dispatch(clearFeed());
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);

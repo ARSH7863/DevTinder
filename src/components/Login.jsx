@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { BASE_URL } from "../utils/constants";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
+import { clearFeed } from "../utils/feedSlice";
+import { clearRequests, addRequests } from "../utils/requestSlice";
+import { removeConnections } from "../utils/connectionSlice";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -19,22 +22,18 @@ const Login = () => {
   const dispatch = useDispatch();
 
   const handleLogin = async () => {
-    console.log("🔥 HANDLE LOGIN CALLED");
     try {
       setError("");
       setLoading(true);
+      // Clear any stale data from a previous session before logging in
+      dispatch(clearFeed());
+      dispatch(clearRequests());
+      dispatch(removeConnections());
       const res = await axios.post(
         `${BASE_URL}/login`,
-        {
-          emailId,
-          password,
-        },
-        {
-          withCredentials: true,
-        },
+        { emailId, password },
+        { withCredentials: true },
       );
-
-      // res.data has { message: "...", user: { firstName, lastName, ... } }
       dispatch(addUser(res?.data?.user || res.data));
       navigate("/");
     } catch (err) {
@@ -45,31 +44,30 @@ const Login = () => {
   };
 
   const handleSignUp = async () => {
-    console.log("🔥 HANDLE SIGNUP CALLED", {
-      firstName,
-      lastName,
-      emailId,
-      password,
-    });
     try {
       setError("");
       setLoading(true);
       const res = await axios.post(
         `${BASE_URL}/signup`,
-        {
-          firstName,
-          lastName,
-          emailId,
-          password,
-        },
-        {
-          withCredentials: true,
-        },
+        { firstName, lastName, emailId, password },
+        { withCredentials: true },
       );
-      console.log("🔥 SIGNUP RESPONSE:", res.data);
+      // After signup the backend returns user — set them in Redux
+      if (res?.data?.user || res?.data) {
+        dispatch(addUser(res?.data?.user || res.data));
+      }
+      // Pre-fetch requests so the bell badge shows immediately (new users have 0)
+      try {
+        const reqRes = await axios.get(`${BASE_URL}/user/requests/received`, {
+          withCredentials: true,
+        });
+        const reqData = reqRes?.data?.data || reqRes?.data || [];
+        dispatch(addRequests(Array.isArray(reqData) ? reqData : []));
+      } catch (_) {
+        // Non-critical — ignore if requests fetch fails
+      }
       navigate("/");
     } catch (err) {
-      console.error("🔥 SIGNUP ERROR:", err);
       setError(err?.response?.data || err.message || "Signup failed");
     } finally {
       setLoading(false);

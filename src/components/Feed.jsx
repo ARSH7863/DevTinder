@@ -27,17 +27,17 @@ if (!document.getElementById(SWIPE_STYLE_ID)) {
       to { transform: translateX(140vw) rotate(30deg); opacity: 0; }
     }
     @keyframes cardEntrance {
-      from { transform: scale(0.88) translateY(24px); opacity: 0; }
+      from { transform: scale(0.95) translateY(9px); opacity: 0.85; }
       to   { transform: scale(1) translateY(0); opacity: 1; }
     }
     .swipe-card {
-      animation: cardEntrance 0.35s cubic-bezier(.22,1,.36,1) both;
+      animation: cardEntrance 0.3s cubic-bezier(.22,1,.36,1) both;
       touch-action: none;
       will-change: transform;
       user-select: none;
     }
-    .fly-left  { animation: flyLeft  0.38s cubic-bezier(.55,0,1,.7) forwards !important; }
-    .fly-right { animation: flyRight 0.38s cubic-bezier(.55,0,1,.7) forwards !important; }
+    .fly-left  { animation: flyLeft  0.34s cubic-bezier(.55,0,1,.7) forwards !important; }
+    .fly-right { animation: flyRight 0.34s cubic-bezier(.55,0,1,.7) forwards !important; }
   `;
   document.head.appendChild(style);
 }
@@ -75,15 +75,22 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
   const flyAndAct = (direction, action) => {
     if (animating || !cardRef.current) return;
     setAnimating(true);
+    cardRef.current.style.transform = "";
     cardRef.current.classList.add(direction === "right" ? "fly-right" : "fly-left");
     setTimeout(() => {
-      action();
+      if (cardRef.current) {
+        cardRef.current.classList.remove("fly-right", "fly-left");
+        cardRef.current.style.transform = "";
+      }
       setAnimating(false);
-    }, 360);
+      action();
+    }, 320);
   };
 
   // Pointer events for drag
   const onPointerDown = (e) => {
+    // If the click/touch is on or inside the action buttons, let the button handle it
+    if (e.target.closest("button") || e.target.closest(".feed-actions")) return;
     if (animating || actionLoading) return;
     isDragging.current = true;
     startX.current = e.clientX;
@@ -220,11 +227,20 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
         )}
 
         {/* Action Buttons — re-enable pointer events */}
-        <div className="flex justify-center gap-6 mt-3 pointer-events-auto">
+        <div
+          className="feed-actions flex justify-center gap-6 mt-3 pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
-            onClick={(e) => { e.stopPropagation(); flyAndAct("left", onSkip); }}
-            disabled={actionLoading || animating}
-            className="btn btn-circle btn-outline border-2 border-error text-error hover:bg-error hover:text-white hover:border-error w-14 h-14 shadow-md transition-all duration-200 hover:scale-110"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              flyAndAct("left", onSkip);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            disabled={animating}
+            className="btn btn-circle btn-outline border-2 border-error text-error hover:bg-error hover:text-white hover:border-error w-14 h-14 shadow-md transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+            aria-label="Skip developer"
           >
             {actionLoading === "skip" ? (
               <span className="loading loading-spinner loading-sm" />
@@ -236,9 +252,15 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
           </button>
 
           <button
-            onClick={(e) => { e.stopPropagation(); flyAndAct("right", onLike); }}
-            disabled={actionLoading || animating}
-            className="btn btn-circle btn-outline border-2 border-success text-success hover:bg-success hover:text-white hover:border-success w-14 h-14 shadow-md transition-all duration-200 hover:scale-110"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              flyAndAct("right", onLike);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            disabled={animating}
+            className="btn btn-circle btn-outline border-2 border-success text-success hover:bg-success hover:text-white hover:border-success w-14 h-14 shadow-md transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+            aria-label="Connect with developer"
           >
             {actionLoading === "like" ? (
               <span className="loading loading-spinner loading-sm" />
@@ -254,33 +276,138 @@ const UserCard = ({ user, onLike, onSkip, actionLoading }) => {
   );
 };
 
+const PreviewCard = ({ user }) => {
+  const skills = Array.isArray(user?.skills) ? user.skills : [];
+
+  return (
+    <div
+      className="card bg-base-100 shadow-xl w-80 sm:w-96 border border-base-300 overflow-hidden pointer-events-none absolute inset-0"
+      style={{
+        transform: "scale(0.95) translateY(9px)",
+        transformOrigin: "bottom center",
+        zIndex: 2,
+        opacity: 0.85,
+      }}
+    >
+      {/* Photo */}
+      <figure className="relative h-72 bg-base-200 overflow-hidden">
+        <img
+          src={user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR}
+          alt={`${user?.firstName} ${user?.lastName}`}
+          className="w-full h-full object-cover"
+          draggable={false}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = DEFAULT_USER_AVATAR;
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-3 left-4 text-white">
+          <h2 className="text-xl font-bold leading-tight drop-shadow">
+            {user?.firstName} {user?.lastName}
+            {user?.age && (
+              <span className="text-base font-normal opacity-90">, {user.age}</span>
+            )}
+          </h2>
+          {user?.gender && (
+            <span className="text-xs opacity-80 capitalize">{user.gender}</span>
+          )}
+        </div>
+      </figure>
+
+      {/* Card body */}
+      <div className="card-body p-4 gap-2">
+        {user?.about && (
+          <p className="text-sm text-base-content/75 line-clamp-2">{user.about}</p>
+        )}
+
+        {skills.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {skills.map((skill, idx) => (
+              <span
+                key={idx}
+                className={`badge badge-outline badge-sm ${SKILLS_COLORS[idx % SKILLS_COLORS.length]}`}
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Spacing placeholder matching action button area */}
+        <div className="flex justify-center gap-6 mt-3 h-14" />
+      </div>
+    </div>
+  );
+};
+
 const Feed = () => {
   const dispatch = useDispatch();
   const feed = useSelector((store) => store.feed);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // "like" | "skip" | null
   const [toast, setToast] = useState(null); // { type: "like" | "skip", name: string }
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
+  const LIMIT = 10;
 
-  const fetchFeed = async () => {
-    if (feed && feed.length > 0) return;
+  const fetchFeed = async (pageNum = 1) => {
+    if (loading) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/user/feed`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${BASE_URL}/user/feed?page=${pageNum}&limit=${LIMIT}`,
+        { withCredentials: true, timeout: 5000 }
+      );
       const data = res?.data?.data || res?.data?.users || res?.data;
-      dispatch(addFeed(Array.isArray(data) ? data : []));
+      const users = Array.isArray(data) ? data : [];
+
+      if (users.length === 0) {
+        setHasMore(false);
+        if (pageNum === 1) {
+          dispatch(addFeed([]));
+        }
+      } else {
+        if (pageNum === 1) {
+          dispatch(addFeed(users));
+        } else {
+          // Append to existing feed
+          dispatch(addFeed([...(feed || []), ...users]));
+        }
+        setHasMore(users.length === LIMIT);
+        setPage(pageNum);
+      }
     } catch (err) {
       console.error("Failed to fetch feed:", err);
-      dispatch(addFeed([]));
+      if (pageNum === 1) dispatch(addFeed([]));
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFeed();
+    // Only fetch on mount if feed is empty
+    if (!feed || feed.length === 0) {
+      fetchFeed(1);
+    }
+
+    // Safeguard: Stop loader after 5000ms if no developers are loaded
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+      setLoading(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  // Auto-fetch next page when feed runs out but more pages exist
+  useEffect(() => {
+    if (feed !== null && feed.length === 0 && hasMore && !loading) {
+      fetchFeed(page + 1);
+    }
+  }, [feed]);
 
   const showToast = (type, name, message) => {
     setToast({ type, name, message });
@@ -288,11 +415,11 @@ const Feed = () => {
   };
 
   const handleLike = async (userId, firstName) => {
-    setActionLoading("like");
+    // Optimistic removal: transition to next card immediately
+    dispatch(removeUserFromFeed(userId));
+    showToast("like", firstName);
     try {
       await sendConnectionRequest("interested", userId);
-      dispatch(removeUserFromFeed(userId));
-      showToast("like", firstName);
     } catch (err) {
       console.error("Like request failed:", err);
       const errMsg =
@@ -300,17 +427,15 @@ const Feed = () => {
         (typeof err?.response?.data === "string" ? err?.response?.data : null) ||
         "Failed to send request";
       showToast("error", firstName, errMsg);
-    } finally {
-      setActionLoading(null);
     }
   };
 
   const handleSkip = async (userId, firstName) => {
-    setActionLoading("skip");
+    // Optimistic removal: transition to next card immediately
+    dispatch(removeUserFromFeed(userId));
+    showToast("skip", firstName);
     try {
       await sendConnectionRequest("ignored", userId);
-      dispatch(removeUserFromFeed(userId));
-      showToast("skip", firstName);
     } catch (err) {
       console.error("Skip request failed:", err);
       const errMsg =
@@ -318,37 +443,50 @@ const Feed = () => {
         (typeof err?.response?.data === "string" ? err?.response?.data : null) ||
         "Failed to ignore user";
       showToast("error", firstName, errMsg);
-    } finally {
-      setActionLoading(null);
     }
   };
 
-  if (loading) {
+  // 1. If timed out after 5000ms or feed is verified empty with no more users
+  if (timedOut || (feed !== null && feed.length === 0 && !hasMore)) {
     return (
       <div className="flex-1 flex items-center justify-center bg-base-200/40">
-        <div className="flex flex-col items-center gap-3">
-          <span className="loading loading-spinner loading-lg text-primary" />
-          <p className="text-sm text-base-content/60">Finding developers for you...</p>
+        <div className="text-center flex flex-col items-center gap-3 p-8">
+          <div className="text-6xl">🔍</div>
+          <h2 className="text-2xl font-bold">No developers found</h2>
+          <p className="text-base-content/60 text-sm max-w-xs">
+            No developers to discover right now. Check back later for new connections.
+          </p>
+          <button
+            onClick={() => {
+              setTimedOut(false);
+              setHasMore(true);
+              fetchFeed(1);
+            }}
+            className="btn btn-primary btn-sm mt-2"
+          >
+            Refresh Feed
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!feed || feed.length === 0) {
+  // 2. Loading state: only show spinner while actively loading
+  if (loading || !feed) {
     return (
       <div className="flex-1 flex items-center justify-center bg-base-200/40">
-        <div className="text-center flex flex-col items-center gap-3 p-8">
-          <div className="text-6xl">🎉</div>
-          <h2 className="text-2xl font-bold">You're all caught up!</h2>
-          <p className="text-base-content/60 text-sm max-w-xs">
-            No more developers to discover right now. Check back later for new connections.
+        <div className="flex flex-col items-center gap-3">
+          <span className="loading loading-spinner loading-lg text-primary" />
+          <p className="text-sm text-base-content/60">
+            {feed && feed.length > 0 ? "Finding more developers..." : "Finding developers for you..."}
           </p>
         </div>
       </div>
     );
   }
 
-  const currentUser = feed[0];
+  const currentUser = feed?.[0];
+  if (!currentUser) return null;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center bg-base-200/40 py-8 px-4 relative">
@@ -357,12 +495,37 @@ const Feed = () => {
         {feed.length} developer{feed.length !== 1 ? "s" : ""} left
       </p>
 
-      <UserCard
-        user={currentUser}
-        onLike={() => handleLike(currentUser._id, currentUser.firstName)}
-        onSkip={() => handleSkip(currentUser._id, currentUser.firstName)}
-        actionLoading={actionLoading}
-      />
+      {/* Card stack */}
+      <div className="relative w-80 sm:w-96">
+        {/* Ghost card 2 — furthest back */}
+        {feed.length > 2 && (
+          <div
+            className="absolute inset-0 card bg-base-100 border border-base-300 rounded-2xl pointer-events-none"
+            style={{
+              transform: "scale(0.90) translateY(18px)",
+              transformOrigin: "bottom center",
+              zIndex: 1,
+              opacity: 0.45,
+            }}
+          />
+        )}
+
+        {/* Preview card — next developer waiting underneath */}
+        {feed.length > 1 && feed[1] && (
+          <PreviewCard user={feed[1]} />
+        )}
+
+        {/* Active top card */}
+        <div style={{ position: "relative", zIndex: 3 }}>
+          <UserCard
+            key={currentUser._id}
+            user={currentUser}
+            onLike={() => handleLike(currentUser._id, currentUser.firstName)}
+            onSkip={() => handleSkip(currentUser._id, currentUser.firstName)}
+            actionLoading={actionLoading}
+          />
+        </div>
+      </div>
 
       {/* Toast Notification */}
       {toast && (

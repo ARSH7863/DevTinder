@@ -1,11 +1,18 @@
 import { useState } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addUser } from "../utils/userSlice";
+import { removeUser } from "../utils/userSlice";
+import { clearFeed } from "../utils/feedSlice";
+import { clearRequests } from "../utils/requestSlice";
+import { removeConnections } from "../utils/connectionSlice";
 
 // ─── Change Password Card ────────────────────────────────────────────────────
 const ChangePassword = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -44,7 +51,14 @@ const ChangePassword = () => {
       setNewPassword("");
       setConfirmPassword("");
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 4000);
+      // Backend cleared the cookie — wipe client state and redirect to login
+      setTimeout(() => {
+        dispatch(removeUser());
+        dispatch(clearFeed());
+        dispatch(clearRequests());
+        dispatch(removeConnections());
+        navigate("/login");
+      }, 1500);
     } catch (err) {
       const msg =
         typeof err?.response?.data === "string"
