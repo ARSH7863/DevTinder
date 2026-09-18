@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BASE_URL } from "../utils/constants";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
@@ -20,6 +20,25 @@ const Login = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error");
+    if (oauthError) {
+      if (oauthError === "OAuthFailed") {
+        setError("GitHub authorization failed. Please try again.");
+      } else if (oauthError === "NoEmail") {
+        setError("Could not access a verified email address from your GitHub account.");
+      } else {
+        setError(oauthError.replace(/([A-Z])/g, " $1").trim() || "GitHub login failed.");
+      }
+    }
+  }, [searchParams]);
+
+  const handleGithubLogin = () => {
+    // Redirects to backend OAuth endpoint (/auth/github locally, or /api/auth/github on EC2)
+    window.location.href = `${BASE_URL}/auth/github`;
+  };
 
   const handleLogin = async () => {
     try {
@@ -310,7 +329,9 @@ const Login = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                className="btn btn-outline btn-xs h-8 gap-1.5 font-medium"
+                onClick={handleGithubLogin}
+                className="btn btn-outline btn-xs h-8 gap-1.5 font-medium hover:bg-base-200 transition-colors"
+                id="github-login-btn"
               >
                 <svg
                   className="w-3.5 h-3.5 fill-current"
