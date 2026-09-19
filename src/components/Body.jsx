@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
@@ -13,6 +13,8 @@ const Body = () => {
   const location = useLocation();
   const userData = useSelector((store) => store.user);
   const [loading, setLoading] = useState(true);
+
+  const authChecked = useRef(false);
 
   const fetchUser = async () => {
     try {
@@ -35,15 +37,18 @@ const Body = () => {
   };
 
   useEffect(() => {
-    if (!userData) {
+    if (!authChecked.current) {
+      authChecked.current = true;
       fetchUser();
-    } else {
-      setLoading(false);
-      if (location.pathname === "/login") {
-        navigate("/");
-      }
+      return;
     }
-  }, [location.pathname]);
+
+    if (!userData && location.pathname !== "/login") {
+      navigate("/login");
+    } else if (userData && location.pathname === "/login") {
+      navigate("/");
+    }
+  }, [userData, location.pathname]);
 
   if (loading) {
     return (

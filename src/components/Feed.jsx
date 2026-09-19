@@ -562,7 +562,20 @@ const Feed = () => {
       }
     } catch (err) {
       console.error("Failed to fetch feed:", err);
-      if (err?.response?.status === 401) {
+      const errorMsg =
+        (typeof err?.response?.data === "string"
+          ? err?.response?.data
+          : err?.response?.data?.message) || "";
+      const isAuthError =
+        err?.response?.status === 401 ||
+        (err?.response?.status === 400 &&
+          (errorMsg.toLowerCase().includes("token") ||
+            errorMsg.toLowerCase().includes("login") ||
+            errorMsg.toLowerCase().includes("jwt") ||
+            errorMsg.toLowerCase().includes("auth") ||
+            errorMsg.toLowerCase().includes("please")));
+
+      if (isAuthError) {
         dispatch(removeUser());
         navigate("/login");
         return;
@@ -575,11 +588,15 @@ const Feed = () => {
   };
 
   useEffect(() => {
-    // Only fetch on mount if feed is empty
+    if (!loggedInUser) {
+      navigate("/login");
+      return;
+    }
+    // Only fetch if user is authenticated and feed is empty
     if (!feed || feed.length === 0) {
       fetchFeed(1);
     }
-  }, []);
+  }, [loggedInUser]);
 
   // Safeguard: Stop loader after 5000ms if stuck loading with 0 developers
   useEffect(() => {
