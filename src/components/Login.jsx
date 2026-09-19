@@ -25,12 +25,14 @@ const Login = () => {
   useEffect(() => {
     const oauthError = searchParams.get("error");
     if (oauthError) {
-      if (oauthError === "OAuthFailed") {
+      if (oauthError === "OAuthFailed" || oauthError === "GitHubAuthError") {
         setError("GitHub authorization failed. Please try again.");
+      } else if (oauthError === "GoogleAuthError" || oauthError === "GoogleOAuthFailed") {
+        setError("Google authorization failed. Please try again.");
       } else if (oauthError === "NoEmail") {
-        setError("Could not access a verified email address from your GitHub account.");
+        setError("Could not access a verified email from your OAuth account. Please use email/password login.");
       } else {
-        setError(oauthError.replace(/([A-Z])/g, " $1").trim() || "GitHub login failed.");
+        setError(oauthError.replace(/([A-Z])/g, " $1").trim() || "OAuth login failed.");
       }
     }
   }, [searchParams]);
@@ -38,6 +40,11 @@ const Login = () => {
   const handleGithubLogin = () => {
     // Redirects to backend OAuth endpoint (/auth/github locally, or /api/auth/github on EC2)
     window.location.href = `${BASE_URL}/auth/github`;
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirects to backend OAuth endpoint (/auth/google locally, or /api/auth/google on EC2)
+    window.location.href = `${BASE_URL}/auth/google`;
   };
 
   const handleLogin = async () => {
@@ -351,7 +358,9 @@ const Login = () => {
               </button>
               <button
                 type="button"
-                className="btn btn-outline btn-xs h-8 gap-1.5 font-medium"
+                onClick={handleGoogleLogin}
+                className="btn btn-outline btn-xs h-8 gap-1.5 font-medium hover:bg-base-200 transition-colors"
+                id="google-login-btn"
               >
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                   <path
