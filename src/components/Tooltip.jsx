@@ -2,6 +2,7 @@ const Tooltip = ({
   text,
   kbd,
   position = "top",
+  align = "center",
   color = "neutral",
   children,
   className = "",
@@ -19,19 +20,45 @@ const Tooltip = ({
   const chosenColor = colorStyles[color] || colorStyles.neutral;
 
   // Position offset map
-  const positionStyles = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-2.5",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-2.5",
-    left: "right-full top-1/2 -translate-y-1/2 mr-2.5",
-    right: "left-full top-1/2 -translate-y-1/2 ml-2.5",
-  };
+  let posClass = "bottom-full left-1/2 -translate-x-1/2 mb-2.5";
+  let arrowPosClass = "top-full left-1/2 -translate-x-1/2";
+
+  if (position === "bottom") {
+    if (align === "end") {
+      posClass = "top-full right-0 mt-2.5";
+      arrowPosClass = "bottom-full right-3.5";
+    } else if (align === "start") {
+      posClass = "top-full left-0 mt-2.5";
+      arrowPosClass = "bottom-full left-3.5";
+    } else {
+      posClass = "top-full left-1/2 -translate-x-1/2 mt-2.5";
+      arrowPosClass = "bottom-full left-1/2 -translate-x-1/2";
+    }
+  } else if (position === "top") {
+    if (align === "end") {
+      posClass = "bottom-full right-0 mb-2.5";
+      arrowPosClass = "top-full right-3.5";
+    } else if (align === "start") {
+      posClass = "bottom-full left-0 mb-2.5";
+      arrowPosClass = "top-full left-3.5";
+    } else {
+      posClass = "bottom-full left-1/2 -translate-x-1/2 mb-2.5";
+      arrowPosClass = "top-full left-1/2 -translate-x-1/2";
+    }
+  } else if (position === "left") {
+    posClass = "right-full top-1/2 -translate-y-1/2 mr-2.5";
+    arrowPosClass = "left-full top-1/2 -translate-y-1/2";
+  } else if (position === "right") {
+    posClass = "left-full top-1/2 -translate-y-1/2 ml-2.5";
+    arrowPosClass = "right-full top-1/2 -translate-y-1/2";
+  }
 
   // Arrow styles
-  const arrowStyles = {
-    top: "top-full left-1/2 -translate-x-1/2 border-t-neutral border-l-transparent border-r-transparent border-b-transparent border-[5px]",
-    bottom: "bottom-full left-1/2 -translate-x-1/2 border-b-neutral border-l-transparent border-r-transparent border-t-transparent border-[5px]",
-    left: "left-full top-1/2 -translate-y-1/2 border-l-neutral border-t-transparent border-b-transparent border-r-transparent border-[5px]",
-    right: "right-full top-1/2 -translate-y-1/2 border-r-neutral border-t-transparent border-b-transparent border-l-transparent border-[5px]",
+  const arrowDirectionStyles = {
+    top: "border-t-neutral border-l-transparent border-r-transparent border-b-transparent border-[5px]",
+    bottom: "border-b-neutral border-l-transparent border-r-transparent border-t-transparent border-[5px]",
+    left: "border-l-neutral border-t-transparent border-b-transparent border-r-transparent border-[5px]",
+    right: "border-r-neutral border-t-transparent border-b-transparent border-l-transparent border-[5px]",
   };
 
   return (
@@ -40,7 +67,7 @@ const Tooltip = ({
 
       <div
         role="tooltip"
-        className={`pointer-events-none absolute z-40 hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border shadow-xl backdrop-blur-md opacity-0 scale-90 translate-y-1 group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 group-hover/tooltip:translate-y-0 transition-all duration-150 ease-out select-none ${positionStyles[position]} ${chosenColor}`}
+        className={`pointer-events-none absolute z-40 hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border shadow-xl backdrop-blur-md invisible group-hover/tooltip:visible opacity-0 scale-90 translate-y-1 group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 group-hover/tooltip:translate-y-0 transition-all duration-150 ease-out select-none ${posClass} ${chosenColor}`}
       >
         <span>{text}</span>
         {kbd && (
@@ -48,7 +75,7 @@ const Tooltip = ({
             {kbd}
           </kbd>
         )}
-        <span className={`absolute w-0 h-0 ${arrowStyles[position]}`} />
+        <span className={`absolute w-0 h-0 ${arrowPosClass} ${arrowDirectionStyles[position]}`} />
       </div>
     </div>
   );

@@ -65,7 +65,7 @@ const NavBar = () => {
 
   return (
     <>
-      <div className="navbar bg-base-200 shadow-sm">
+      <div className="navbar bg-base-200 shadow-sm w-full max-w-full px-2 sm:px-4">
         <div className="flex-1">
           <Link to="/" className="btn btn-ghost text-xl">
             👨‍💻DevTinder
@@ -77,6 +77,7 @@ const NavBar = () => {
           text={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
           color="neutral"
           position="bottom"
+          align="end"
         >
           <button
             onClick={handleThemeToggle}
