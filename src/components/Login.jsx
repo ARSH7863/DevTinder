@@ -268,6 +268,7 @@ const Login = () => {
                     placeholder="dev@example.com"
                     value={emailId}
                     onChange={(e) => setEmailId(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </label>
@@ -307,6 +308,7 @@ const Login = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
                     required
                   />
                   <button
