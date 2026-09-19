@@ -9,6 +9,31 @@ import { clearFeed } from "../utils/feedSlice";
 import { clearRequests } from "../utils/requestSlice";
 import { removeConnections } from "../utils/connectionSlice";
 
+// ─── Password Field Helper Component ─────────────────────────────────────────
+const PasswordField = ({ label, value, onChange, show, onToggle, id }) => (
+  <fieldset className="fieldset py-0 mt-2">
+    <legend className="fieldset-legend text-xs font-semibold">{label}</legend>
+    <div className="relative">
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        className="input input-bordered input-sm w-full pr-16"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="••••••••"
+        autoComplete="off"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-base-content/50 hover:text-base-content transition-colors px-1"
+      >
+        {show ? "Hide" : "Show"}
+      </button>
+    </div>
+  </fieldset>
+);
+
 // ─── Change Password Card ────────────────────────────────────────────────────
 const ChangePassword = () => {
   const dispatch = useDispatch();
@@ -72,30 +97,6 @@ const ChangePassword = () => {
       setLoading(false);
     }
   };
-
-  const PasswordField = ({ label, value, onChange, show, onToggle, id }) => (
-    <fieldset className="fieldset py-0 mt-2">
-      <legend className="fieldset-legend text-xs font-semibold">{label}</legend>
-      <div className="relative">
-        <input
-          id={id}
-          type={show ? "text" : "password"}
-          className="input input-bordered input-sm w-full pr-16"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="••••••••"
-          autoComplete="off"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-base-content/50 hover:text-base-content transition-colors px-1"
-        >
-          {show ? "Hide" : "Show"}
-        </button>
-      </div>
-    </fieldset>
-  );
 
   return (
     <div className="card bg-base-100 w-full max-w-lg shadow-xl border border-base-300 mt-6">
