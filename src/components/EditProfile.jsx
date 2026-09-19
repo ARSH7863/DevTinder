@@ -10,18 +10,19 @@ import { clearRequests } from "../utils/requestSlice";
 import { removeConnections } from "../utils/connectionSlice";
 
 // ─── Password Field Helper Component ─────────────────────────────────────────
-const PasswordField = ({ label, value, onChange, show, onToggle, id }) => (
+const PasswordField = ({ label, value, onChange, show, onToggle, id, autoComplete }) => (
   <fieldset className="fieldset py-0 mt-2">
     <legend className="fieldset-legend text-xs font-semibold">{label}</legend>
     <div className="relative">
       <input
         id={id}
+        name={id}
         type={show ? "text" : "password"}
         className="input input-bordered input-sm w-full pr-16"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="••••••••"
-        autoComplete="off"
+        autoComplete={autoComplete || "current-password"}
       />
       <button
         type="button"
@@ -48,7 +49,8 @@ const ChangePassword = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (e) => {
+    if (e) e.preventDefault();
     setError("");
     setSuccess(false);
 
@@ -112,45 +114,50 @@ const ChangePassword = () => {
           </div>
         )}
 
-        <PasswordField
-          id="old-password"
-          label="Current Password"
-          value={oldPassword}
-          onChange={setOldPassword}
-          show={showOld}
-          onToggle={() => setShowOld((p) => !p)}
-        />
-        <PasswordField
-          id="new-password"
-          label="New Password"
-          value={newPassword}
-          onChange={setNewPassword}
-          show={showNew}
-          onToggle={() => setShowNew((p) => !p)}
-        />
-        <PasswordField
-          id="confirm-password"
-          label="Confirm New Password"
-          value={confirmPassword}
-          onChange={setConfirmPassword}
-          show={showConfirm}
-          onToggle={() => setShowConfirm((p) => !p)}
-        />
+        <form onSubmit={handleChangePassword}>
+          <PasswordField
+            id="old-password"
+            label="Current Password"
+            value={oldPassword}
+            onChange={setOldPassword}
+            show={showOld}
+            onToggle={() => setShowOld((p) => !p)}
+            autoComplete="current-password"
+          />
+          <PasswordField
+            id="new-password"
+            label="New Password"
+            value={newPassword}
+            onChange={setNewPassword}
+            show={showNew}
+            onToggle={() => setShowNew((p) => !p)}
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="confirm-password"
+            label="Confirm New Password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            show={showConfirm}
+            onToggle={() => setShowConfirm((p) => !p)}
+            autoComplete="new-password"
+          />
 
-        <p className="text-xs text-base-content/50 mt-2">
-          Password must contain uppercase, lowercase, number and special character.
-        </p>
+          <p className="text-xs text-base-content/50 mt-2">
+            Password must contain uppercase, lowercase, number and special character.
+          </p>
 
-        <div className="card-actions justify-end mt-4">
-          <button
-            onClick={handleChangePassword}
-            disabled={loading}
-            className="btn btn-warning btn-sm px-6 shadow"
-          >
-            {loading && <span className="loading loading-spinner loading-xs" />}
-            Update Password
-          </button>
-        </div>
+          <div className="card-actions justify-end mt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-warning btn-sm px-6 shadow"
+            >
+              {loading && <span className="loading loading-spinner loading-xs" />}
+              Update Password
+            </button>
+          </div>
+        </form>
       </div>
 
       {success && (
