@@ -41,6 +41,9 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
+    console.log("🔥 HANDLE LOGIN CALLED");
+    console.log("BASE_URL:", BASE_URL);
+
     try {
       setError("");
       setLoading(true);
@@ -114,6 +117,10 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    console.log("🔥 HANDLE SUBMIT CALLED");
+    console.log("isSignUp:", isSignUp);
+
     if (isSignUp) {
       handleSignUp();
     } else {
