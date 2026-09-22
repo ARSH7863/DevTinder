@@ -74,7 +74,9 @@ const NavBar = () => {
 
         {/* Theme Toggle */}
         <Tooltip
-          text={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          text={
+            theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"
+          }
           color="neutral"
           position="bottom"
           align="end"
@@ -107,7 +109,9 @@ const NavBar = () => {
               className="h-5 w-5 fill-current"
               style={{
                 display: "block",
-                animation: spinning ? "themeSpin 0.5s cubic-bezier(.4,0,.2,1) forwards" : "none",
+                animation: spinning
+                  ? "themeSpin 0.5s cubic-bezier(.4,0,.2,1) forwards"
+                  : "none",
                 transformOrigin: "center",
               }}
             >
@@ -136,7 +140,11 @@ const NavBar = () => {
         {/* Requests Bell — visible in navbar when logged in */}
         {user && (
           <Tooltip
-            text={requests?.length ? `${requests.length} Connection requests` : "Connection requests"}
+            text={
+              requests?.length
+                ? `${requests.length} Connection requests`
+                : "Connection requests"
+            }
             color="primary"
             position="bottom"
           >
@@ -202,6 +210,9 @@ const NavBar = () => {
                 </li>
                 <li>
                   <Link to="/connections">Connections</Link>
+                </li>
+                <li>
+                  <Link to="/premium">Premium</Link>
                 </li>
                 <li>
                   <a onClick={handleLogout}>Logout</a>
