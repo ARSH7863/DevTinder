@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
+import axios from "axios";
+import { addUser } from "../utils/userSlice";
+import { BASE_URL } from "../utils/constants";
 
 const PLANS = [
   {
@@ -117,12 +120,18 @@ const TESTIMONIALS = [
 
 const Premium = () => {
   const user = useSelector((store) => store.user);
+  const dispatch = useDispatch();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [activePlan, setActivePlan] = useState("starter"); // 'starter' | 'silver' | 'gold'
   const [selectedPlanModal, setSelectedPlanModal] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("upi");
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [downgradeLoading, setDowngradeLoading] = useState(false);
+
+  // Derive activePlan from the Redux store so it always reflects the real membership
+  const activePlan = user?.isPremium && user?.membershipType
+    ? user.membershipType.toLowerCase()
+    : "starter";
 
   const handleOpenCheckout = (plan) => {
     if (plan.id === "starter" || plan.id === activePlan) return;
@@ -130,35 +139,100 @@ const Premium = () => {
     setPaymentSuccess(false);
   };
 
-  const handleCompletePayment = () => {
-    setProcessingPayment(true);
+  const fireConfetti = () => {
+    confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 }, colors: ["#f59e0b", "#3b82f6", "#10b981", "#ec4899", "#8b5cf6"] });
     setTimeout(() => {
-      setProcessingPayment(false);
-      setPaymentSuccess(true);
-      setActivePlan(selectedPlanModal.id);
+      confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0.2, y: 0.7 } });
+      confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 0.8, y: 0.7 } });
+    }, 300);
+  };
 
-      // Trigger multi-stage confetti
-      confetti({
-        particleCount: 80,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ["#f59e0b", "#3b82f6", "#10b981", "#ec4899", "#8b5cf6"],
+  const handleCompletePayment = async () => {
+    setProcessingPayment(true);
+    try {
+      // Step 1: Create Razorpay order on backend
+      const orderRes = await axios.post(
+        BASE_URL + "/payment/create",
+        { membershipType: selectedPlanModal.id },
+        { withCredentials: true }
+      );
+      const { orderId, amount, currency, notes, keyId } = orderRes.data;
+
+      // Step 2: Open Razorpay checkout modal
+      const options = {
+        key: keyId,
+        amount,
+        currency,
+        name: "DevTinder",
+        description: selectedPlanModal.name + " Membership",
+        order_id: orderId,
+        prefill: {
+          name: notes?.firstName || user?.firstName || "",
+          email: notes?.emailId || user?.emailId || "",
+        },
+        theme: { color: selectedPlanModal.isGold ? "#f59e0b" : "#6366f1" },
+        handler: async function (response) {
+          // Step 3: Verify payment signature on backend
+          const verifyRes = await axios.post(
+            BASE_URL + "/payment/verify",
+            {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            },
+            { withCredentials: true }
+          );
+          if (verifyRes.data.success) {
+            // Update Redux store with new membership
+            dispatch(addUser({
+              ...user,
+              isPremium: true,
+              membershipType: selectedPlanModal.id,
+            }));
+            setPaymentSuccess(true);
+            fireConfetti();
+          }
+        },
+        modal: {
+          ondismiss: () => setProcessingPayment(false),
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", () => {
+        setProcessingPayment(false);
+        alert("Payment failed. Please try again.");
       });
-      setTimeout(() => {
-        confetti({
-          particleCount: 50,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0.2, y: 0.7 },
-        });
-        confetti({
-          particleCount: 50,
-          angle: 120,
-          spread: 55,
-          origin: { x: 0.8, y: 0.7 },
-        });
-      }, 300);
-    }, 1200);
+      rzp.open();
+    } catch (err) {
+      console.error("Payment Error:", err);
+      alert(err?.response?.data?.error || "Payment failed. Please try again.");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleDowngrade = async (targetMembershipType) => {
+    setDowngradeLoading(true);
+    try {
+      const res = await axios.post(
+        BASE_URL + "/payment/downgrade",
+        { targetMembershipType },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        dispatch(addUser({
+          ...user,
+          isPremium: res.data.isPremium,
+          membershipType: res.data.membershipType || null,
+        }));
+      }
+    } catch (err) {
+      console.error("Downgrade Error:", err);
+      alert(err?.response?.data?.error || "Downgrade failed. Please try again.");
+    } finally {
+      setDowngradeLoading(false);
+    }
   };
 
   return (
@@ -193,12 +267,24 @@ const Premium = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setActivePlan("starter")}
-              className="btn btn-xs btn-outline btn-ghost"
-            >
-              Downgrade
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              {activePlan === "gold" && (
+                <button
+                  onClick={() => handleDowngrade("silver")}
+                  disabled={downgradeLoading}
+                  className="btn btn-xs btn-outline btn-ghost"
+                >
+                  {downgradeLoading ? <span className="loading loading-spinner loading-xs"></span> : "↓ Silver"}
+                </button>
+              )}
+              <button
+                onClick={() => handleDowngrade("free")}
+                disabled={downgradeLoading}
+                className="btn btn-xs btn-error btn-outline"
+              >
+                {downgradeLoading ? <span className="loading loading-spinner loading-xs"></span> : "Cancel Plan"}
+              </button>
+            </div>
           </div>
         )}
 
