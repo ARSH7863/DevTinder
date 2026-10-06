@@ -80,9 +80,17 @@ const UserDetailsModal = ({
               <div className="flex flex-wrap items-baseline gap-2">
                 <h2
                   id="user-details-title"
-                  className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md"
+                  className="text-2xl sm:text-3xl font-extrabold text-white drop-shadow-md flex items-center gap-2 flex-wrap"
                 >
-                  {user.firstName} {user.lastName}
+                  <span>{user.firstName} {user.lastName}</span>
+                  {user.membershipType && (user.membershipType.toLowerCase() === "gold" || user.membershipType.toLowerCase() === "silver") && (
+                    <span
+                      className="text-2xl leading-none"
+                      title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                    >
+                      {user.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                    </span>
+                  )}
                 </h2>
                 {user.age && (
                   <span className="text-xl text-white/90 font-light">
@@ -100,6 +108,16 @@ const UserDetailsModal = ({
                 <span className="badge badge-sm badge-primary badge-outline">
                   Developer
                 </span>
+                {user.membershipType && user.membershipType.toLowerCase() === "gold" && (
+                  <span className="badge badge-sm badge-warning text-black font-bold">
+                    👑 Gold Elite
+                  </span>
+                )}
+                {user.membershipType && user.membershipType.toLowerCase() === "silver" && (
+                  <span className="badge badge-sm badge-primary font-bold">
+                    🛡️ Dev Pro
+                  </span>
+                )}
               </div>
             </div>
           </div>

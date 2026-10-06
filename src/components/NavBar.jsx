@@ -182,7 +182,7 @@ const NavBar = () => {
             <span className="hidden sm:inline text-sm font-medium">
               Welcome, {user?.firstName}
             </span>
-            <div className="dropdown dropdown-end mx-5">
+            <div className="dropdown dropdown-end mx-5 relative">
               <div
                 tabIndex={0}
                 role="button"
@@ -201,6 +201,15 @@ const NavBar = () => {
                   />
                 </div>
               </div>
+              {/* Premium badge — sits on the dropdown wrapper, not inside avatar */}
+              {user?.membershipType && (user.membershipType.toLowerCase() === "gold" || user.membershipType.toLowerCase() === "silver") && (
+                <span
+                  className="absolute top-0 right-0 text-xs leading-none select-none pointer-events-none"
+                  title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                >
+                  {user.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                </span>
+              )}
               <ul
                 tabIndex="-1"
                 className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"

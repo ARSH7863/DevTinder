@@ -375,7 +375,7 @@ const Requests = () => {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
                     {/* Left: Avatar + Details */}
                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className="avatar shrink-0">
+                      <div className="avatar shrink-0 relative">
                         <div className="w-16 h-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100 overflow-hidden">
                           <img
                             src={
@@ -391,12 +391,29 @@ const Requests = () => {
                             }}
                           />
                         </div>
+                        {/* Premium badge overlay on avatar */}
+                        {sender.membershipType && (sender.membershipType.toLowerCase() === "gold" || sender.membershipType.toLowerCase() === "silver") && (
+                          <span
+                            className="absolute -top-1 -right-1 text-sm leading-none select-none"
+                            title={sender.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                          >
+                            {sender.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                          </span>
+                        )}
                       </div>
 
                       <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-lg font-bold truncate">
-                            {senderName}
+                          <h2 className="text-lg font-bold truncate flex items-center gap-1.5">
+                            <span>{senderName}</span>
+                            {sender.membershipType && (sender.membershipType.toLowerCase() === "gold" || sender.membershipType.toLowerCase() === "silver") && (
+                              <span
+                                className="text-sm leading-none"
+                                title={sender.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                              >
+                                {sender.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                              </span>
+                            )}
                           </h2>
                           {sender.age && (
                             <span className="text-xs text-base-content/70">

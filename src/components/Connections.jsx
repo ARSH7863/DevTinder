@@ -349,7 +349,7 @@ const Connections = () => {
                   <div className="p-5 space-y-4">
                     {/* Top row: Avatar & Identity */}
                     <div className="flex items-start gap-4">
-                      <div className="avatar shrink-0">
+                      <div className="avatar shrink-0 relative">
                         <div className="w-16 h-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100 overflow-hidden">
                           <img
                             src={
@@ -367,11 +367,28 @@ const Connections = () => {
                             }}
                           />
                         </div>
+                        {/* Premium badge overlay on avatar */}
+                        {user.membershipType && (user.membershipType.toLowerCase() === "gold" || user.membershipType.toLowerCase() === "silver") && (
+                          <span
+                            className="absolute -top-1 -right-1 text-sm leading-none select-none"
+                            title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                          >
+                            {user.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-lg font-bold truncate leading-tight">
-                          {user.firstName} {user.lastName}
+                        <h2 className="text-lg font-bold truncate leading-tight flex items-center gap-1.5 flex-wrap">
+                          <span>{user.firstName} {user.lastName}</span>
+                          {user.membershipType && (user.membershipType.toLowerCase() === "gold" || user.membershipType.toLowerCase() === "silver") && (
+                            <span
+                              className="text-sm leading-none"
+                              title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                            >
+                              {user.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                            </span>
+                          )}
                         </h2>
                         <div className="flex items-center gap-2 mt-1">
                           {user.age && (

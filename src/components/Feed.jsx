@@ -263,8 +263,16 @@ const UserCard = forwardRef(
 
           {/* Name & age on photo */}
           <div className="absolute bottom-3 left-4 text-white">
-            <h2 className="text-xl font-bold leading-tight drop-shadow">
-              {user?.firstName} {user?.lastName}
+            <h2 className="text-xl font-bold leading-tight drop-shadow flex items-center gap-1.5 flex-wrap">
+              <span>{user?.firstName} {user?.lastName}</span>
+              {user?.membershipType && (user.membershipType.toLowerCase() === "gold" || user.membershipType.toLowerCase() === "silver") && (
+                <span
+                  className="text-base leading-none"
+                  title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
+                >
+                  {user.membershipType.toLowerCase() === "gold" ? "👑" : "🛡️"}
+                </span>
+              )}
               {user?.age && (
                 <span className="text-base font-normal opacity-90">, {user.age}</span>
               )}
