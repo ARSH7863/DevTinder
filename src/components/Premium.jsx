@@ -236,7 +236,8 @@ const Premium = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-base-100 text-base-content py-8" style={{ width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ boxSizing: 'border-box' }}>
       {/* Header / Hero */}
       <div className="text-center max-w-3xl mx-auto mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-semibold mb-4 border border-primary/20">
@@ -255,19 +256,19 @@ const Premium = () => {
 
         {/* Active Plan Banner (if upgraded) */}
         {activePlan !== "starter" && (
-          <div className="alert alert-success shadow-lg mt-6 text-left flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{activePlan === "gold" ? "👑" : "🛡️"}</span>
-              <div>
+          <div className="alert alert-success shadow-lg mt-6 text-left flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-2xl shrink-0">{activePlan === "gold" ? "👑" : "🛡️"}</span>
+              <div className="min-w-0">
                 <h3 className="font-bold text-sm sm:text-base">
-                  You are currently on {activePlan === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}!
+                  You are on {activePlan === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}!
                 </h3>
                 <div className="text-xs opacity-90">
                   Your premium benefits and verified badge are active.
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-row gap-2 shrink-0">
               {activePlan === "gold" && (
                 <button
                   onClick={() => handleDowngrade("silver")}
@@ -289,17 +290,17 @@ const Premium = () => {
         )}
 
         {/* Billing Cycle Switcher */}
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="mt-8 flex items-center justify-center gap-2 sm:gap-4">
           <span
-            className={`text-sm font-medium cursor-pointer transition-colors ${
+            className={`text-sm font-medium cursor-pointer transition-colors whitespace-nowrap ${
               !isAnnual ? "text-primary font-bold" : "text-base-content/60"
             }`}
             onClick={() => setIsAnnual(false)}
           >
-            Monthly Billing
+            Monthly
           </span>
 
-          <label className="swap swap-rotate relative inline-flex items-center cursor-pointer">
+          <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
               checked={isAnnual}
@@ -309,12 +310,12 @@ const Premium = () => {
           </label>
 
           <span
-            className={`text-sm font-medium cursor-pointer transition-colors flex items-center gap-2 ${
+            className={`text-sm font-medium cursor-pointer transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               isAnnual ? "text-primary font-bold" : "text-base-content/60"
             }`}
             onClick={() => setIsAnnual(true)}
           >
-            <span>Annual Billing</span>
+            <span>Annual</span>
             <span className="badge badge-accent badge-sm font-bold animate-pulse">
               Save 25%
             </span>
@@ -323,7 +324,7 @@ const Premium = () => {
       </div>
 
       {/* Plan Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start mb-16 pt-5" style={{ width: '100%' }}>
         {PLANS.map((plan) => {
           const isCurrent = activePlan === plan.id;
           const displayPrice = isAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice;
@@ -332,6 +333,7 @@ const Premium = () => {
           return (
             <div
               key={plan.id}
+              style={{ width: '100%', boxSizing: 'border-box', minWidth: 0 }}
               className={`card bg-base-200/80 backdrop-blur-sm shadow-xl rounded-2xl border transition-all duration-300 flex flex-col justify-between hover:shadow-2xl relative ${
                 plan.popular
                   ? "border-primary ring-2 ring-primary/40 shadow-primary/10 md:-translate-y-2"
@@ -353,15 +355,15 @@ const Premium = () => {
                 </div>
               )}
 
-              <div className="card-body p-6 sm:p-8 flex flex-col flex-grow">
+              <div className="card-body p-5 flex flex-col flex-grow" style={{ minWidth: 0, boxSizing: 'border-box' }}>
                 {/* Plan Header */}
-                <div className="mb-4">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <span>{plan.name}</span>
+                <div className="mb-4 min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 flex-wrap">
+                    <span className="break-words">{plan.name}</span>
                     {plan.isGold && <span>👑</span>}
                     {plan.id === "silver" && <span>🛡️</span>}
                   </h2>
-                  <p className="text-xs text-base-content/70 mt-1 min-h-[32px]">
+                  <p className="text-xs text-base-content/70 mt-1 min-h-[32px] break-words">
                     {plan.description}
                   </p>
                 </div>
@@ -390,7 +392,7 @@ const Premium = () => {
                 </div>
 
                 {/* Features List */}
-                <ul className="space-y-3 my-4 flex-grow text-xs sm:text-sm">
+                <ul className="space-y-3 my-4 flex-grow text-xs sm:text-sm min-w-0">
                   {plan.features.map((feat, idx) => (
                     <li
                       key={idx}
@@ -433,7 +435,7 @@ const Premium = () => {
                           />
                         </svg>
                       )}
-                      <span>{feat.text}</span>
+                      <span className="break-words min-w-0">{feat.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -710,6 +712,7 @@ const Premium = () => {
           </form>
         </dialog>
       )}
+      </div>
     </div>
   );
 };
