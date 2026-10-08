@@ -482,7 +482,9 @@ const Premium = () => {
               {PLANS.map((plan) => {
                 const isCurrent = activePlan === plan.id;
                 const displayPrice = isAnnual ? plan.annualMonthlyPrice : plan.monthlyPrice;
-                const billedTotal = isAnnual ? plan.annualMonthlyPrice * 12 : plan.monthlyPrice;
+                const totalAnnualCost = plan.annualMonthlyPrice * 12;
+                const regularAnnualCost = plan.monthlyPrice * 12;
+                const annualSavings = regularAnnualCost - totalAnnualCost;
 
                 return (
                   <div
@@ -526,17 +528,26 @@ const Premium = () => {
                       <div className="my-4 pb-4 border-b border-base-300">
                         <div className="flex items-baseline gap-1">
                           <span className="text-3xl sm:text-4xl font-black">
-                            ₹{displayPrice}
+                            ₹{displayPrice.toLocaleString('en-IN')}
                           </span>
                           <span className="text-xs sm:text-sm text-base-content/60">
                             / month
                           </span>
                         </div>
                         {plan.monthlyPrice > 0 ? (
-                          <div className="text-xs text-base-content/60 mt-1">
-                            {isAnnual
-                              ? `Billed annually (₹${billedTotal}/yr)`
-                              : `Billed monthly (₹${billedTotal}/mo)`}
+                          <div className="text-xs mt-1 font-medium">
+                            {isAnnual ? (
+                              <span className="text-success flex items-center gap-1 flex-wrap">
+                                <span>Billed annually (₹{totalAnnualCost.toLocaleString('en-IN')}/yr)</span>
+                                <span className="badge badge-success badge-xs text-[10px] font-bold">
+                                  Save ₹{annualSavings.toLocaleString('en-IN')}/yr
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-base-content/60">
+                                Billed monthly (₹{plan.monthlyPrice.toLocaleString('en-IN')}/mo)
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <div className="text-xs text-base-content/60 mt-1">
@@ -721,153 +732,178 @@ const Premium = () => {
         )}
 
         {/* Checkout / Payment Modal (Triggered by upgrades or purchases) */}
-        {selectedPlanModal && (
-          <dialog id="checkout_modal" className="modal modal-open modal-bottom sm:modal-middle">
-            <div className="modal-box max-w-md bg-base-200 border border-base-300 shadow-2xl rounded-2xl">
-              {!paymentSuccess ? (
-                <>
-                  <div className="flex items-center justify-between border-b border-base-300 pb-3 mb-4">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                      <span>Upgrade to {selectedPlanModal.name}</span>
-                      {selectedPlanModal.isGold ? <span>👑</span> : <span>🛡️</span>}
-                    </h3>
-                    <button
-                      onClick={() => setSelectedPlanModal(null)}
-                      className="btn btn-sm btn-circle btn-ghost"
-                    >
-                      ✕
-                    </button>
-                  </div>
+        {selectedPlanModal && (() => {
+          const planAmount = isAnnual
+            ? selectedPlanModal.annualMonthlyPrice * 12
+            : selectedPlanModal.monthlyPrice;
+          const originalAnnualAmount = selectedPlanModal.monthlyPrice * 12;
+          const annualSavings = originalAnnualAmount - planAmount;
 
-                  {/* Plan Summary */}
-                  <div className="bg-base-100 p-4 rounded-xl mb-4 border border-base-300">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-semibold text-sm">
-                        {selectedPlanModal.name} ({isAnnual ? "Annual" : "Monthly"})
-                      </span>
-                      <span className="font-bold text-sm">
-                        ₹{isAnnual ? selectedPlanModal.annualMonthlyPrice * 12 : selectedPlanModal.monthlyPrice}
-                      </span>
-                    </div>
-                    <div className="text-xs text-base-content/60 flex justify-between">
-                      <span>Billing Frequency</span>
-                      <span>{isAnnual ? "Billed once yearly (Save 25%)" : "Billed monthly"}</span>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Selector */}
-                  <div className="mb-4">
-                    <label className="label text-xs font-bold text-base-content/70 py-1">
-                      Select Payment Method
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
+          return (
+            <dialog id="checkout_modal" className="modal modal-open modal-bottom sm:modal-middle">
+              <div className="modal-box max-w-md bg-base-200 border border-base-300 shadow-2xl rounded-2xl">
+                {!paymentSuccess ? (
+                  <>
+                    <div className="flex items-center justify-between border-b border-base-300 pb-3 mb-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <span>Upgrade to {selectedPlanModal.name}</span>
+                        {selectedPlanModal.isGold ? <span>👑</span> : <span>🛡️</span>}
+                      </h3>
                       <button
-                        type="button"
-                        onClick={() => setPaymentMethod("upi")}
-                        className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
-                          paymentMethod === "upi" ? "btn-primary" : "btn-outline btn-neutral"
-                        }`}
+                        onClick={() => setSelectedPlanModal(null)}
+                        className="btn btn-sm btn-circle btn-ghost"
                       >
-                        <span>⚡ UPI</span>
-                        <span className="text-[9px] opacity-80">GPay, PhonePe</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("card")}
-                        className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
-                          paymentMethod === "card" ? "btn-primary" : "btn-outline btn-neutral"
-                        }`}
-                      >
-                        <span>💳 Card</span>
-                        <span className="text-[9px] opacity-80">Visa, Master</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("netbanking")}
-                        className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
-                          paymentMethod === "netbanking" ? "btn-primary" : "btn-outline btn-neutral"
-                        }`}
-                      >
-                        <span>🏦 Bank</span>
-                        <span className="text-[9px] opacity-80">NetBanking</span>
+                        ✕
                       </button>
                     </div>
-                  </div>
 
-                  {/* Security info */}
-                  <div className="flex items-center justify-center gap-2 text-xs text-base-content/60 my-3">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-success"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span>256-bit SSL encrypted secure checkout</span>
-                  </div>
+                    {/* Plan & Mathematical Breakdown Summary */}
+                    <div className="bg-base-100 p-4 rounded-xl mb-4 border border-base-300 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-sm">
+                          {selectedPlanModal.name} ({isAnnual ? "Annual Billing" : "Monthly Billing"})
+                        </span>
+                        <span className="font-extrabold text-base text-primary">
+                          ₹{planAmount.toLocaleString('en-IN')}
+                        </span>
+                      </div>
 
-                  {/* Action Buttons */}
-                  <div className="modal-action mt-4">
-                    <button
-                      onClick={() => setSelectedPlanModal(null)}
-                      disabled={processingPayment}
-                      className="btn btn-sm btn-ghost"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCompletePayment}
-                      disabled={processingPayment}
-                      className={`btn btn-sm flex-1 ${
-                        selectedPlanModal.isGold ? "btn-warning text-black font-bold" : "btn-primary"
-                      }`}
-                    >
-                      {processingPayment ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      ) : (
-                        `Pay ₹${isAnnual ? selectedPlanModal.annualMonthlyPrice * 12 : selectedPlanModal.monthlyPrice} & Activate`
-                      )}
-                    </button>
+                      <div className="text-xs text-base-content/70 border-t border-base-200 pt-2 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Rate Calculation:</span>
+                          <span>
+                            {isAnnual
+                              ? `₹${selectedPlanModal.annualMonthlyPrice.toLocaleString('en-IN')}/mo × 12 months`
+                              : `₹${selectedPlanModal.monthlyPrice.toLocaleString('en-IN')}/mo`}
+                          </span>
+                        </div>
+                        {isAnnual && (
+                          <div className="flex justify-between text-success font-medium">
+                            <span>Annual Discount Savings:</span>
+                            <span>-₹{annualSavings.toLocaleString('en-IN')} (25% off)</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold pt-1 border-t border-base-200 text-base-content">
+                          <span>Total Amount Due:</span>
+                          <span>₹{planAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Method Selector */}
+                    <div className="mb-4">
+                      <label className="label text-xs font-bold text-base-content/70 py-1">
+                        Select Payment Method
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("upi")}
+                          className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
+                            paymentMethod === "upi" ? "btn-primary" : "btn-outline btn-neutral"
+                          }`}
+                        >
+                          <span>⚡ UPI</span>
+                          <span className="text-[9px] opacity-80">GPay, PhonePe</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("card")}
+                          className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
+                            paymentMethod === "card" ? "btn-primary" : "btn-outline btn-neutral"
+                          }`}
+                        >
+                          <span>💳 Card</span>
+                          <span className="text-[9px] opacity-80">Visa, Master</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("netbanking")}
+                          className={`btn btn-sm text-xs flex flex-col h-auto py-2 ${
+                            paymentMethod === "netbanking" ? "btn-primary" : "btn-outline btn-neutral"
+                          }`}
+                        >
+                          <span>🏦 Bank</span>
+                          <span className="text-[9px] opacity-80">NetBanking</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Security info */}
+                    <div className="flex items-center justify-center gap-2 text-xs text-base-content/60 my-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-success"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>256-bit SSL encrypted secure checkout</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="modal-action mt-4">
+                      <button
+                        onClick={() => setSelectedPlanModal(null)}
+                        disabled={processingPayment}
+                        className="btn btn-sm btn-ghost"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCompletePayment}
+                        disabled={processingPayment}
+                        className={`btn btn-sm flex-1 ${
+                          selectedPlanModal.isGold ? "btn-warning text-black font-bold" : "btn-primary"
+                        }`}
+                      >
+                        {processingPayment ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          `Pay ₹${planAmount.toLocaleString('en-IN')} & Activate`
+                        )}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* Payment Success State */
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
+                      ✓
+                    </div>
+                    <h3 className="font-extrabold text-2xl mb-2">Welcome to {selectedPlanModal.name}!</h3>
+                    <p className="text-sm text-base-content/75 mb-6">
+                      Your subscription is active! Your profile now shines with your verified badge and elevated limits.
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => setSelectedPlanModal(null)}
+                        className="btn btn-primary btn-sm"
+                      >
+                        Start Networking
+                      </button>
+                      <Link
+                        to="/profile"
+                        onClick={() => setSelectedPlanModal(null)}
+                        className="btn btn-outline btn-neutral btn-sm"
+                      >
+                        View My Profile
+                      </Link>
+                    </div>
                   </div>
-                </>
-              ) : (
-                /* Payment Success State */
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 bg-success/20 text-success rounded-full flex items-center justify-center mx-auto mb-4 text-3xl animate-bounce">
-                    ✓
-                  </div>
-                  <h3 className="font-extrabold text-2xl mb-2">Welcome to {selectedPlanModal.name}!</h3>
-                  <p className="text-sm text-base-content/75 mb-6">
-                    Your subscription is active! Your profile now shines with your verified badge and elevated limits.
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={() => setSelectedPlanModal(null)}
-                      className="btn btn-primary btn-sm"
-                    >
-                      Start Networking
-                    </button>
-                    <Link
-                      to="/profile"
-                      onClick={() => setSelectedPlanModal(null)}
-                      className="btn btn-outline btn-neutral btn-sm"
-                    >
-                      View My Profile
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-            <form method="dialog" className="modal-backdrop">
-              <button onClick={() => setSelectedPlanModal(null)}>close</button>
-            </form>
-          </dialog>
-        )}
+                )}
+              </div>
+              <form method="dialog" className="modal-backdrop">
+                <button onClick={() => setSelectedPlanModal(null)}>close</button>
+              </form>
+            </dialog>
+          );
+        })()}
       </div>
     </div>
   );
