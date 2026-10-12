@@ -226,54 +226,60 @@ const UserDetailsModal = ({
           </div>
         </div>
 
-        {/* Footer Swipe Action Controls */}
-        <div className="p-4 border-t border-base-200 bg-base-200/40 flex items-center justify-around gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onSkip();
-            }}
-            disabled={actionLoading}
-            className="btn btn-outline border-2 border-error text-error hover:bg-error hover:text-white flex-1 rounded-2xl h-12 gap-2 shadow-sm cursor-pointer"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-            <span className="font-bold">Pass</span>
-          </button>
+        {/* Footer Swipe Action Controls (shown only when like/skip actions are provided) */}
+        {(onLike || onSkip) && (
+          <div className="p-4 border-t border-base-200 bg-base-200/40 flex items-center justify-around gap-4">
+            {onSkip && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSkip();
+                }}
+                disabled={actionLoading}
+                className="btn btn-outline border-2 border-error text-error hover:bg-error hover:text-white flex-1 rounded-2xl h-12 gap-2 shadow-sm cursor-pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                <span className="font-bold">Pass</span>
+              </button>
+            )}
 
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onLike();
-            }}
-            disabled={actionLoading}
-            className="btn btn-primary flex-1 rounded-2xl h-12 gap-2 shadow-md shadow-primary/20 cursor-pointer"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-            <span className="font-bold">Connect</span>
-          </button>
-        </div>
+            {onLike && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onLike();
+                }}
+                disabled={actionLoading}
+                className="btn btn-primary flex-1 rounded-2xl h-12 gap-2 shadow-md shadow-primary/20 cursor-pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+                <span className="font-bold">Connect</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

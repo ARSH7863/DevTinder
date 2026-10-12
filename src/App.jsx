@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import appStore from "./utils/appStore";
 import Premium from "./components/Premium";
+import Chats from "./components/Chats";
 
 const App = () => {
   return (
@@ -25,6 +26,8 @@ const App = () => {
               <Route path="/requests" element={<Requests />}></Route>
               <Route path="/request" element={<Requests />}></Route>
               <Route path="/premium" element={<Premium />}></Route>
+              <Route path="/chat" element={<Chats />}></Route>
+              <Route path="/chat/:targetUserId" element={<Chats />}></Route>
               <Route path="*" element={<NotFound />}></Route>
             </Route>
           </Routes>

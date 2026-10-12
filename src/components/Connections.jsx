@@ -447,8 +447,7 @@ const Connections = () => {
                       <button
                         className="btn btn-xs btn-primary btn-outline gap-1"
                         onClick={() => {
-                          // Placeholder for messaging or future chat integration
-                          alert(`Chat with ${user.firstName} coming soon!`);
+                          navigate(`/chat?userId=${user._id}`);
                         }}
                       >
                         <svg
