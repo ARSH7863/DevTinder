@@ -4,53 +4,11 @@ import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
 import { addConnections } from "../utils/connectionSlice";
-import { createSocketConnection } from "../utils/socket";
+import { createSocketConnection, playIncomingMessageSound } from "../utils/socket";
+import { resetUnreadCount } from "../utils/chatNotificationSlice";
 import UserDetailsModal from "./UserDetailsModal";
 
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "🚀", "💻", "🎉", "💯", "👏", "🤝", "⚡", "✨", "☕", "🥑", "🤩", "🙌"];
-
-// Play pleasant WhatsApp-style incoming message chime using Web Audio API
-const playIncomingMessageSound = () => {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-
-    if (ctx.state === "suspended") {
-      ctx.resume();
-    }
-
-    const now = ctx.currentTime;
-
-    // Two-tone chime (WhatsApp style: 880Hz then 1320Hz)
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    osc1.type = "sine";
-    osc2.type = "sine";
-
-    osc1.frequency.setValueAtTime(880, now); // A5 note
-    osc2.frequency.setValueAtTime(1320, now + 0.08); // E6 note
-
-    gainNode.gain.setValueAtTime(0.001, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.08);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    osc1.start(now);
-    osc1.stop(now + 0.09);
-
-    osc2.start(now + 0.08);
-    osc2.stop(now + 0.35);
-  } catch (e) {
-    console.debug("Audio notification could not be played:", e);
-  }
-};
 
 const Chats = () => {
   const loggedInUser = useSelector((store) => store.user);
@@ -206,25 +164,42 @@ const Chats = () => {
     fetchChatMessages();
   }, [activeContactId, loggedInUser?._id]);
 
-  // Socket.IO lifecycle: Connect, join room, and listen for incoming messages
+  // Ref to always have the latest activeContactId in stable listeners
+  const activeContactIdRef = useRef(activeContactId);
+  useEffect(() => {
+    activeContactIdRef.current = activeContactId;
+  }, [activeContactId]);
+
+  // ─── STABLE SOCKET LIFECYCLE ───────────────────────────────────────────────
+  // Runs ONCE per user login. Registers all event listeners on the singleton
+  // socket and never tears them down on contact switch — preventing missed msgs.
   useEffect(() => {
     const currentUserId = loggedInUser?._id;
     if (!currentUserId) return;
 
-    // Initialize socket connection
     const socket = createSocketConnection();
     socketRef.current = socket;
 
-    // Join room when active contact is selected
-    if (activeContactId) {
-      socket.emit("joinChat", {
-        firstName: loggedInUser?.firstName || "Developer",
-        userId: currentUserId,
-        targetUserId: activeContactId,
-      });
+    // Join personal notification room (re-join on reconnect via "connect" event)
+    const joinPersonalRoom = () => {
+      socket.emit("joinUser", { userId: currentUserId });
+      // Also re-join active chat room if any (handles server restarts)
+      if (activeContactIdRef.current) {
+        socket.emit("joinChat", {
+          firstName: loggedInUser?.firstName || "Developer",
+          userId: currentUserId,
+          targetUserId: activeContactIdRef.current,
+        });
+      }
+    };
+
+    if (socket.connected) {
+      joinPersonalRoom();
+    } else {
+      socket.on("connect", joinPersonalRoom);
     }
 
-    // Listen for incoming messages from the room
+    // ── messageReceived ────────────────────────────────────────────────────
     const handleIncomingMessage = ({ firstName, text, senderId, createdAt }) => {
       const timeStr = createdAt
         ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -232,7 +207,7 @@ const Chats = () => {
 
       const incomingMsg = {
         id: "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
-        sender: senderId === currentUserId ? "me" : "them",
+        sender: String(senderId) === String(currentUserId) ? "me" : "them",
         senderId,
         firstName,
         text,
@@ -240,91 +215,102 @@ const Chats = () => {
         status: "read",
       };
 
-      // Append incoming message to stream
       setMessages((prev) => [...prev, incomingMsg]);
 
-      // If the sender just sent a message, they are no longer typing
-      if (senderId === activeContactId) {
+      // Clear typing indicator when sender's message arrives
+      if (String(senderId) === String(activeContactIdRef.current)) {
         setIsTyping(false);
       }
 
-      // If message is from the other person (not me), trigger notifications
-      if (senderId !== currentUserId) {
-        // 1. Play WhatsApp chime
+      // Notify if message is from the other person
+      if (String(senderId) !== String(currentUserId)) {
         playIncomingMessageSound();
 
-        // 2. Show WhatsApp-style floating in-app notification popup
         if (notificationToastTimerRef.current) {
           clearTimeout(notificationToastTimerRef.current);
         }
-        setNotificationToast({
-          senderId,
-          firstName: firstName || "Someone",
-          text,
-          time: timeStr,
-        });
-        notificationToastTimerRef.current = setTimeout(() => {
-          setNotificationToast(null);
-        }, 4500);
+        setNotificationToast({ senderId, firstName: firstName || "Someone", text, time: timeStr });
+        notificationToastTimerRef.current = setTimeout(() => setNotificationToast(null), 4500);
 
-        // 3. System/Browser notification if tab is in background
-        if (
-          "Notification" in window &&
-          Notification.permission === "granted" &&
-          document.visibilityState !== "visible"
-        ) {
+        if ("Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible") {
           try {
-            new Notification(`${firstName || "New Message"} - DevTinder`, {
-              body: text,
-              icon: "/favicon.ico",
-            });
-          } catch (e) {
-            console.debug("Notification error:", e);
-          }
+            new Notification(`${firstName || "New Message"} - DevTinder`, { body: text, icon: "/favicon.ico" });
+          } catch (e) { /* silent */ }
         }
       }
 
-      // Update last message preview in the sidebar
+      // Update sidebar last message preview
       setContacts((prev) =>
         prev.map((c) =>
-          c._id === senderId || (senderId === currentUserId && c._id === activeContactId)
+          String(c._id) === String(senderId) ||
+          (String(senderId) === String(currentUserId) && String(c._id) === String(activeContactIdRef.current))
             ? { ...c, lastMessage: text, lastMessageTime: timeStr }
             : c
         )
       );
     };
 
-    // Listen for typing events from the other user in the room
+    // ── newNotification (for messages in OTHER conversations) ──────────────
+    const handleNewNotification = ({ senderId, text, createdAt }) => {
+      if (String(activeContactIdRef.current) === String(senderId)) return;
+      const timeStr = createdAt
+        ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+      setContacts((prev) =>
+        prev.map((c) =>
+          String(c._id) === String(senderId)
+            ? { ...c, lastMessage: text, lastMessageTime: timeStr, unreadCount: (c.unreadCount || 0) + 1 }
+            : c
+        )
+      );
+    };
+
+    // ── typing ────────────────────────────────────────────────────────────
     const handleUserTyping = (data) => {
-      console.log("Typing event received from server:", data);
-      const incomingId = String(data?.userId || "");
-      const targetId = String(activeContactId || "");
-      if (incomingId && targetId && incomingId === targetId) {
-        setIsTyping(true);
-      }
+      if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(true);
     };
 
     const handleUserStopTyping = (data) => {
-      console.log("Stop typing event received from server:", data);
-      const incomingId = String(data?.userId || "");
-      const targetId = String(activeContactId || "");
-      if (incomingId && targetId && incomingId === targetId) {
-        setIsTyping(false);
-      }
+      if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(false);
     };
 
     socket.on("messageReceived", handleIncomingMessage);
+    socket.on("newNotification", handleNewNotification);
     socket.on("typing", handleUserTyping);
     socket.on("stopTyping", handleUserStopTyping);
 
-    // Cleanup socket on unmount or active contact change
     return () => {
+      socket.off("connect", joinPersonalRoom);
       socket.off("messageReceived", handleIncomingMessage);
+      socket.off("newNotification", handleNewNotification);
       socket.off("typing", handleUserTyping);
       socket.off("stopTyping", handleUserStopTyping);
-      socket.disconnect();
     };
-  }, [loggedInUser?._id, activeContactId]);
+  }, [loggedInUser?._id]); // ← stable: only re-runs if user changes
+
+  // ─── JOIN CHAT ROOM when active contact changes ────────────────────────────
+  // Lightweight: just emits joinChat. Listeners above stay stable.
+  useEffect(() => {
+    if (!activeContactId || !loggedInUser?._id) return;
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const doJoin = () => {
+      socket.emit("joinChat", {
+        firstName: loggedInUser?.firstName || "Developer",
+        userId: loggedInUser._id,
+        targetUserId: activeContactId,
+      });
+      console.log("✅ joinChat emitted for:", activeContactId);
+    };
+
+    if (socket.connected) {
+      doJoin();
+    } else {
+      socket.once("connect", doJoin);
+    }
+  }, [activeContactId, loggedInUser?._id]);
 
   // Scroll to bottom on message update or typing
   useEffect(() => {
@@ -351,6 +337,14 @@ const Chats = () => {
     setShowEmojiPicker(false);
     setShowAttachmentMenu(false);
     setMessages([]);
+
+    // Clear unread badge for the newly selected contact
+    setContacts((prev) =>
+      prev.map((c) => (String(c._id) === String(id) ? { ...c, unreadCount: 0 } : c))
+    );
+
+    // Also reset global navbar unread badge
+    dispatch(resetUnreadCount());
   };
 
   const handleInputChange = (e) => {
