@@ -9,6 +9,49 @@ import UserDetailsModal from "./UserDetailsModal";
 
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "🚀", "💻", "🎉", "💯", "👏", "🤝", "⚡", "✨", "☕", "🥑", "🤩", "🙌"];
 
+// Play pleasant WhatsApp-style incoming message chime using Web Audio API
+const playIncomingMessageSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    // Two-tone chime (WhatsApp style: 880Hz then 1320Hz)
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc1.type = "sine";
+    osc2.type = "sine";
+
+    osc1.frequency.setValueAtTime(880, now); // A5 note
+    osc2.frequency.setValueAtTime(1320, now + 0.08); // E6 note
+
+    gainNode.gain.setValueAtTime(0.001, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.18, now + 0.08);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    osc1.start(now);
+    osc1.stop(now + 0.09);
+
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.35);
+  } catch (e) {
+    console.debug("Audio notification could not be played:", e);
+  }
+};
+
 const Chats = () => {
   const loggedInUser = useSelector((store) => store.user);
   const connections = useSelector((store) => store.connections);
@@ -29,12 +72,22 @@ const Chats = () => {
   const [searchContactQuery, setSearchContactQuery] = useState("");
   const [callModal, setCallModal] = useState(null);
   const [loadingConnections, setLoadingConnections] = useState(!connections);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [notificationToast, setNotificationToast] = useState(null);
 
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingSentRef = useRef(false);
+  const notificationToastTimerRef = useRef(null);
+
+  // Request browser Notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   // Fetch real connections from backend
   useEffect(() => {
@@ -90,6 +143,69 @@ const Chats = () => {
     }
   }, [queryUserId, contacts]);
 
+  // Fetch chat history from DB whenever active contact changes
+  useEffect(() => {
+    if (!activeContactId) return;
+
+    const fetchChatMessages = async () => {
+      try {
+        setLoadingMessages(true);
+        const res = await axios.get(`${BASE_URL}/chat/${activeContactId}`, {
+          withCredentials: true,
+        });
+
+        const rawMessages = res.data?.messages || res.data?.data?.messages || [];
+        const currentUserId = loggedInUser?._id;
+
+        const formatted = rawMessages.map((msg) => {
+          const senderId =
+            typeof msg.senderId === "object" && msg.senderId !== null
+              ? msg.senderId._id
+              : msg.senderId;
+
+          const firstName =
+            typeof msg.senderId === "object" && msg.senderId !== null
+              ? msg.senderId.firstName
+              : msg.firstName || "Developer";
+
+          const timeStr = msg.createdAt
+            ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "";
+
+          return {
+            id: msg._id || "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
+            sender: String(senderId) === String(currentUserId) ? "me" : "them",
+            senderId,
+            firstName,
+            text: msg.text,
+            time: timeStr,
+            status: "read",
+          };
+        });
+
+        setMessages(formatted);
+
+        // Also update last message preview in contacts list if messages exist
+        if (formatted.length > 0) {
+          const lastMsg = formatted[formatted.length - 1];
+          setContacts((prev) =>
+            prev.map((c) =>
+              c._id === activeContactId
+                ? { ...c, lastMessage: lastMsg.text, lastMessageTime: lastMsg.time }
+                : c
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch chat messages:", err);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+    fetchChatMessages();
+  }, [activeContactId, loggedInUser?._id]);
+
   // Socket.IO lifecycle: Connect, join room, and listen for incoming messages
   useEffect(() => {
     const currentUserId = loggedInUser?._id;
@@ -124,11 +240,48 @@ const Chats = () => {
         status: "read",
       };
 
+      // Append incoming message to stream
       setMessages((prev) => [...prev, incomingMsg]);
 
       // If the sender just sent a message, they are no longer typing
       if (senderId === activeContactId) {
         setIsTyping(false);
+      }
+
+      // If message is from the other person (not me), trigger notifications
+      if (senderId !== currentUserId) {
+        // 1. Play WhatsApp chime
+        playIncomingMessageSound();
+
+        // 2. Show WhatsApp-style floating in-app notification popup
+        if (notificationToastTimerRef.current) {
+          clearTimeout(notificationToastTimerRef.current);
+        }
+        setNotificationToast({
+          senderId,
+          firstName: firstName || "Someone",
+          text,
+          time: timeStr,
+        });
+        notificationToastTimerRef.current = setTimeout(() => {
+          setNotificationToast(null);
+        }, 4500);
+
+        // 3. System/Browser notification if tab is in background
+        if (
+          "Notification" in window &&
+          Notification.permission === "granted" &&
+          document.visibilityState !== "visible"
+        ) {
+          try {
+            new Notification(`${firstName || "New Message"} - DevTinder`, {
+              body: text,
+              icon: "/favicon.ico",
+            });
+          } catch (e) {
+            console.debug("Notification error:", e);
+          }
+        }
       }
 
       // Update last message preview in the sidebar
@@ -645,14 +798,20 @@ const Chats = () => {
                   </div>
                 </div>
 
-                {/* Blank State if no messages yet */}
-                {messages.length === 0 && (
+                {/* Loading indicator while fetching chat history */}
+                {loadingMessages ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-base-content/50">
+                    <span className="loading loading-spinner loading-md text-primary mb-2"></span>
+                    <p className="text-xs">Loading messages...</p>
+                  </div>
+                ) : messages.length === 0 ? (
+                  /* Blank State if no messages yet */
                   <div className="flex flex-col items-center justify-center py-12 text-center text-base-content/50">
                     <span className="text-4xl mb-2">👋</span>
                     <p className="text-sm font-semibold">No messages yet</p>
                     <p className="text-xs">Send a message to start the conversation with {activeContact.firstName}.</p>
                   </div>
-                )}
+                ) : null}
 
                 {/* Messages List */}
                 {messages.map((msg) => {
@@ -942,6 +1101,45 @@ const Chats = () => {
           isOpen={showProfileModal}
           onClose={() => setShowProfileModal(false)}
         />
+      )}
+
+      {/* WhatsApp-Style Floating In-App Notification Toast */}
+      {notificationToast && (
+        <div className="fixed top-5 right-5 z-50 animate-bounce-short transition-all duration-300 max-w-sm w-full px-2">
+          <div
+            onClick={() => {
+              if (notificationToast.senderId) {
+                handleSelectContact(notificationToast.senderId);
+              }
+              setNotificationToast(null);
+            }}
+            className="flex items-center gap-3 bg-base-100/95 backdrop-blur-md border border-success/40 text-base-content p-3.5 rounded-2xl shadow-2xl cursor-pointer hover:bg-base-200/90 transition-all border-l-4 border-l-success"
+          >
+            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center text-success text-xl shrink-0">
+              💬
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <p className="font-bold text-xs sm:text-sm text-base-content truncate">
+                  {notificationToast.firstName}
+                </p>
+                <span className="text-[10px] text-base-content/50">{notificationToast.time}</span>
+              </div>
+              <p className="text-xs text-base-content/80 truncate mt-0.5">
+                {notificationToast.text}
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setNotificationToast(null);
+              }}
+              className="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
