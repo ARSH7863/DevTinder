@@ -72,13 +72,13 @@ const Body = () => {
 
     // Handle incoming notification across the entire app
     const handleNewNotification = ({ senderId, firstName, text, createdAt }) => {
-      // If user is currently looking at this specific chat, Chats.jsx will handle message display
+      // If user is currently looking at this specific chat, do not show toast
       const currentPath = window.location.pathname;
       const searchParams = new URLSearchParams(window.location.search);
       const activeParam = searchParams.get("userId");
       const isChattingWithSender =
         currentPath.includes(`/chat/${senderId}`) ||
-        (currentPath === "/chat" && activeParam === senderId);
+        (currentPath.startsWith("/chat") && (activeParam === String(senderId) || !activeParam));
 
       if (isChattingWithSender) return;
 

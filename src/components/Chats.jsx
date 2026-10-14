@@ -243,15 +243,20 @@ const Chats = () => {
         setIsTyping(false);
       }
 
-      // Notify if message is from the other person
+      // Notify if message is from the other person AND NOT currently in this open chat
       if (!isMe) {
-        playIncomingMessageSound();
+        // If the message is from someone else than the active contact, show toast
+        const isCurrentlyChatting = String(senderId) === String(activeContactIdRef.current);
 
-        if (notificationToastTimerRef.current) {
-          clearTimeout(notificationToastTimerRef.current);
+        if (!isCurrentlyChatting) {
+          playIncomingMessageSound();
+
+          if (notificationToastTimerRef.current) {
+            clearTimeout(notificationToastTimerRef.current);
+          }
+          setNotificationToast({ senderId, firstName: firstName || "Someone", text, time: timeStr });
+          notificationToastTimerRef.current = setTimeout(() => setNotificationToast(null), 4500);
         }
-        setNotificationToast({ senderId, firstName: firstName || "Someone", text, time: timeStr });
-        notificationToastTimerRef.current = setTimeout(() => setNotificationToast(null), 4500);
 
         if ("Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible") {
           try {
@@ -260,7 +265,7 @@ const Chats = () => {
         }
 
         // Tell the sender their message has been read (recipient is actively viewing this chat)
-        if (String(senderId) === String(activeContactIdRef.current) && socketRef.current?.connected) {
+        if (isCurrentlyChatting && socketRef.current?.connected) {
           socketRef.current.emit("markRead", {
             readerId: currentUserId,
             senderId,
@@ -393,6 +398,7 @@ const Chats = () => {
     }
 
     setActiveContactId(id);
+    navigate(`/chat?userId=${id}`, { replace: true });
     setIsTyping(false);
     setShowEmojiPicker(false);
     setShowAttachmentMenu(false);
@@ -499,6 +505,26 @@ const Chats = () => {
     setInputText("");
     setShowEmojiPicker(false);
     setShowAttachmentMenu(false);
+  };
+
+  const handleClearChat = async () => {
+    setMessages([]);
+    if (activeContactId) {
+      setContacts((prev) =>
+        prev.map((c) =>
+          String(c._id) === String(activeContactId)
+            ? { ...c, lastMessage: "", lastMessageTime: "" }
+            : c
+        )
+      );
+      try {
+        await axios.delete(`${BASE_URL}/chat/${activeContactId}`, {
+          withCredentials: true,
+        });
+      } catch (e) {
+        // Fallback / silent if delete endpoint isn't supported yet on backend
+      }
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -668,7 +694,9 @@ const Chats = () => {
 
                       <div className="flex items-center justify-between gap-1">
                         <div className="text-xs text-base-content/70 truncate">
-                          {c.lastMessage || c.about || "Click to start chatting"}
+                          {c.lastMessage !== undefined && c.lastMessage !== ""
+                            ? c.lastMessage
+                            : c.about || "Click to start chatting"}
                         </div>
                         {c.unreadCount > 0 && (
                           <span className="badge badge-success badge-xs font-bold text-[10px] shrink-0">
@@ -842,7 +870,7 @@ const Chats = () => {
                         <a onClick={() => setShowProfileModal(true)}>View Profile</a>
                       </li>
                       <li>
-                        <a onClick={() => setMessages([])}>Clear Chat</a>
+                        <a onClick={handleClearChat}>Clear Chat</a>
                       </li>
                     </ul>
                   </div>
