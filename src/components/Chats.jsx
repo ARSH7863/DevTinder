@@ -1037,12 +1037,13 @@ const Chats = () => {
 
               {/* Emoji Tray */}
               {showEmojiPicker && (
-                <div className="bg-base-200 border-t border-base-300 p-2.5 flex items-center gap-2 overflow-x-auto shadow-inner">
+                <div className="bg-base-200 border-t border-base-300 p-2 sm:p-2.5 flex items-center gap-1.5 sm:gap-2 overflow-x-auto shadow-inner max-w-full no-scrollbar">
                   {EMOJIS.map((emoji) => (
                     <button
                       key={emoji}
+                      type="button"
                       onClick={() => setInputText((prev) => prev + emoji)}
-                      className="btn btn-ghost btn-sm text-lg hover:scale-125 transition-transform"
+                      className="btn btn-ghost btn-xs sm:btn-sm text-base sm:text-lg hover:scale-125 transition-transform shrink-0 p-1 min-h-0 h-8 w-8"
                     >
                       {emoji}
                     </button>
@@ -1052,7 +1053,7 @@ const Chats = () => {
 
               {/* Attachment Menu */}
               {showAttachmentMenu && (
-                <div className="bg-base-200 border-t border-base-300 p-3 grid grid-cols-4 gap-2 text-center text-xs animate-fadeIn">
+                <div className="bg-base-200 border-t border-base-300 p-3 grid grid-cols-4 gap-2 text-center text-xs animate-fadeIn max-w-full">
                   <button
                     onClick={() => {
                       handleSendMessage("📷 [Photo / Media]");
@@ -1097,19 +1098,19 @@ const Chats = () => {
               )}
 
               {/* Bottom Input Bar */}
-              <div className="p-2 sm:p-3 bg-base-200/90 border-t border-base-300 flex items-center gap-2">
+              <div className="p-2 sm:p-3 bg-base-200/90 border-t border-base-300 flex items-center gap-1.5 sm:gap-2 max-w-full box-border">
                 <button
                   type="button"
                   onClick={() => {
                     setShowEmojiPicker(!showEmojiPicker);
                     setShowAttachmentMenu(false);
                   }}
-                  className={`btn btn-ghost btn-circle btn-sm ${
+                  className={`btn btn-ghost btn-circle btn-sm shrink-0 ${
                     showEmojiPicker ? "text-primary" : "text-base-content/70"
                   }`}
                   title="Emoji"
                 >
-                  <span className="text-lg">😊</span>
+                  <span className="text-base sm:text-lg">😊</span>
                 </button>
 
                 <button
@@ -1118,7 +1119,7 @@ const Chats = () => {
                     setShowAttachmentMenu(!showAttachmentMenu);
                     setShowEmojiPicker(false);
                   }}
-                  className={`btn btn-ghost btn-circle btn-sm ${
+                  className={`btn btn-ghost btn-circle btn-sm shrink-0 ${
                     showAttachmentMenu ? "text-primary" : "text-base-content/70"
                   }`}
                   title="Attach"
@@ -1139,14 +1140,14 @@ const Chats = () => {
                   </svg>
                 </button>
 
-                <div className="flex-1 relative">
+                <div className="flex-1 min-w-0 relative">
                   <input
                     type="text"
                     value={inputText}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Type a message..."
-                    className="input input-sm sm:input-md w-full bg-base-100 border-base-300 rounded-full px-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-success/50 shadow-inner"
+                    className="input input-sm sm:input-md w-full bg-base-100 border-base-300 rounded-full px-3.5 sm:px-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-success/50 shadow-inner"
                   />
                 </div>
 
@@ -1154,7 +1155,7 @@ const Chats = () => {
                   <button
                     type="button"
                     onClick={() => handleSendMessage()}
-                    className="btn btn-circle btn-sm sm:btn-md bg-[#00a884] hover:bg-[#008f6f] text-white border-none shadow-md transition-transform active:scale-95"
+                    className="btn btn-circle btn-sm sm:btn-md bg-[#00a884] hover:bg-[#008f6f] text-white border-none shadow-md transition-transform active:scale-95 shrink-0"
                     title="Send message"
                   >
                     <svg
@@ -1169,7 +1170,7 @@ const Chats = () => {
                 ) : (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-success"
+                    className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-success shrink-0"
                     title="Voice Note"
                   >
                     <svg
