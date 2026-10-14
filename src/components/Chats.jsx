@@ -947,13 +947,13 @@ const Chats = () => {
                     </button>
                     <ul
                       tabIndex={0}
-                      className="dropdown-content z-20 menu p-2 shadow bg-base-100 rounded-box w-48 text-xs border border-base-300"
+                      className="dropdown-content z-30 menu p-2 shadow-2xl !bg-base-100 text-base-content rounded-box w-48 text-xs border border-base-300 opacity-100"
                     >
                       <li>
-                        <a onClick={() => setShowProfileModal(true)}>View Profile</a>
+                        <a onClick={() => setShowProfileModal(true)} className="hover:bg-base-200">View Profile</a>
                       </li>
                       <li>
-                        <a onClick={handleClearChat}>Clear Chat</a>
+                        <a onClick={handleClearChat} className="text-error hover:bg-error/10">Clear Chat</a>
                       </li>
                     </ul>
                   </div>

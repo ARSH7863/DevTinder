@@ -252,19 +252,19 @@ const NavBar = () => {
               )}
               <ul
                 tabIndex="-1"
-                className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
+                className="menu menu-sm dropdown-content !bg-base-100 text-base-content rounded-box z-50 mt-3 w-52 p-2 shadow-2xl border border-base-300 opacity-100"
               >
                 <li>
-                  <Link to="/profile">Profile</Link>
+                  <Link to="/profile" className="font-medium text-base-content hover:bg-base-200">Profile</Link>
                 </li>
                 <li>
-                  <Link to="/connections">Connections</Link>
+                  <Link to="/connections" className="font-medium text-base-content hover:bg-base-200">Connections</Link>
                 </li>
                 <li>
-                  <Link to="/premium">Premium</Link>
+                  <Link to="/premium" className="font-medium text-base-content hover:bg-base-200">Premium</Link>
                 </li>
                 <li>
-                  <a onClick={handleLogout}>Logout</a>
+                  <a onClick={handleLogout} className="font-medium text-error hover:bg-error/10">Logout</a>
                 </li>
               </ul>
             </div>
