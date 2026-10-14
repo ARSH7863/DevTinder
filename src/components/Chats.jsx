@@ -924,50 +924,8 @@ const Chats = () => {
                   </div>
                 </div>
 
-                {/* Header Action Buttons (Video, Voice, More) */}
+                {/* Header Action Buttons (TODO: Add Video Call and Voice Call features later) */}
                 <div className="flex items-center gap-1 text-base-content/70">
-                  <button
-                    onClick={() => setCallModal("video")}
-                    className="btn btn-ghost btn-sm btn-circle"
-                    title="Video Call"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </button>
-
-                  <button
-                    onClick={() => setCallModal("voice")}
-                    className="btn btn-ghost btn-sm btn-circle"
-                    title="Voice Call"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                      />
-                    </svg>
-                  </button>
-
                   <div className="dropdown dropdown-end">
                     <button tabIndex={0} className="btn btn-ghost btn-sm btn-circle" title="More options">
                       <svg
@@ -1174,10 +1132,7 @@ const Chats = () => {
               <div className="p-2 sm:p-3 bg-base-200/90 border-t border-base-300 flex items-center gap-1.5 sm:gap-2 max-w-full box-border">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowEmojiPicker(!showEmojiPicker);
-                    setShowAttachmentMenu(false);
-                  }}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   className={`btn btn-ghost btn-circle btn-sm shrink-0 ${
                     showEmojiPicker ? "text-primary" : "text-base-content/70"
                   }`}
@@ -1186,32 +1141,7 @@ const Chats = () => {
                   <span className="text-base sm:text-lg">😊</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAttachmentMenu(!showAttachmentMenu);
-                    setShowEmojiPicker(false);
-                  }}
-                  className={`btn btn-ghost btn-circle btn-sm shrink-0 ${
-                    showAttachmentMenu ? "text-primary" : "text-base-content/70"
-                  }`}
-                  title="Attach"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                </button>
+                {/* TODO: Add File / Media Attachment feature later */}
 
                 <div className="flex-1 min-w-0 relative">
                   <input
@@ -1224,44 +1154,27 @@ const Chats = () => {
                   />
                 </div>
 
-                {inputText.trim() ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSendMessage()}
-                    className="btn btn-circle btn-sm sm:btn-md bg-[#00a884] hover:bg-[#008f6f] text-white border-none shadow-md transition-transform active:scale-95 shrink-0"
-                    title="Send message"
+                {/* Send Button (TODO: Add Microphone / Voice Note feature later) */}
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage()}
+                  disabled={!inputText.trim()}
+                  className={`btn btn-circle btn-sm sm:btn-md border-none shadow-md transition-transform active:scale-95 shrink-0 ${
+                    inputText.trim()
+                      ? "bg-[#00a884] hover:bg-[#008f6f] text-white"
+                      : "bg-base-300 text-base-content/30 cursor-not-allowed"
+                  }`}
+                  title="Send message"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 sm:h-5 sm:w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-circle btn-sm sm:btn-md text-base-content/70 hover:text-success shrink-0"
-                    title="Voice Note"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                      />
-                    </svg>
-                  </button>
-                )}
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                </button>
               </div>
             </>
           ) : (
