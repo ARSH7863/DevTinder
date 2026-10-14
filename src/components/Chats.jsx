@@ -8,6 +8,35 @@ import { createSocketConnection, playIncomingMessageSound } from "../utils/socke
 import { resetUnreadCount } from "../utils/chatNotificationSlice";
 import UserDetailsModal from "./UserDetailsModal";
 
+export const formatLastSeenIST = (dateString) => {
+  if (!dateString) return "Offline";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Offline";
+  const now = new Date();
+
+  // Format options for IST (Asia/Kolkata)
+  const timeStr = date.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  // Check if date was today in IST
+  const dateIST = date.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+  const todayIST = now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+  if (dateIST === todayIST) {
+    return `Last seen today at ${timeStr}`;
+  }
+
+  const dateFormatted = date.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+  });
+  return `Last seen ${dateFormatted} at ${timeStr}`;
+};
+
 const EMOJIS = ["👍", "❤️", "😂", "🔥", "🚀", "💻", "🎉", "💯", "👏", "🤝", "⚡", "✨", "☕", "🥑", "🤩", "🙌"];
 
 const Chats = () => {
@@ -66,8 +95,8 @@ const Chats = () => {
             photoUrl: u.photoUrl || u.photoURL || DEFAULT_USER_AVATAR,
             about: u.about || u.skills?.slice(0, 3).join(", ") || "",
             membershipType: u.membershipType,
-            isOnline: false,
-            lastSeen: "",
+            isOnline: !!u.isOnline,
+            lastSeen: u.lastSeen || "",
             unreadCount: 0,
             lastMessage: "",
             lastMessageTime: "",
@@ -334,14 +363,20 @@ const Chats = () => {
 
     // ── userOnline / userOffline presence events ───────────────────────────
     const handleUserOnline = ({ userId }) => {
+      if (!userId) return;
       setContacts((prev) =>
         prev.map((c) => (String(c._id) === String(userId) ? { ...c, isOnline: true } : c))
       );
     };
 
-    const handleUserOffline = ({ userId }) => {
+    const handleUserOffline = ({ userId, lastSeen }) => {
+      if (!userId) return;
       setContacts((prev) =>
-        prev.map((c) => (String(c._id) === String(userId) ? { ...c, isOnline: false } : c))
+        prev.map((c) =>
+          String(c._id) === String(userId)
+            ? { ...c, isOnline: false, lastSeen: lastSeen || c.lastSeen || null }
+            : c
+        )
       );
     };
 
@@ -864,7 +899,7 @@ const Chats = () => {
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] leading-none">
+                      <div className="text-[11px] leading-none mt-0.5">
                         {isTyping ? (
                           <span className="text-success font-semibold flex items-center gap-1 animate-pulse">
                             <span>typing</span>
@@ -875,9 +910,14 @@ const Chats = () => {
                             </span>
                           </span>
                         ) : activeContact.isOnline ? (
-                          <span className="text-success font-medium">online</span>
+                          <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                            Online
+                          </span>
                         ) : (
-                          <span className="text-base-content/60">{activeContact.lastSeen || activeContact.about || ""}</span>
+                          <span className="text-base-content/60 font-medium">
+                            {formatLastSeenIST(activeContact.lastSeen)}
+                          </span>
                         )}
                       </div>
                     </div>

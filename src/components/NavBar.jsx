@@ -7,6 +7,7 @@ import { removeUser } from "../utils/userSlice";
 import { removeConnections } from "../utils/connectionSlice";
 import { addRequests, clearRequests } from "../utils/requestSlice";
 import { clearFeed } from "../utils/feedSlice";
+import { getSocket, disconnectSocket } from "../utils/socket";
 import useTheme from "../utils/useTheme";
 import Tooltip from "./Tooltip";
 
@@ -47,6 +48,14 @@ const NavBar = () => {
 
   const handleLogout = async () => {
     try {
+      const socket = getSocket();
+      if (socket && user?._id) {
+        // 1. Emit explicit logout event so other users see offline & lastSeen immediately
+        socket.emit("logoutUser", { userId: user._id });
+        // 2. Disconnect client-side websocket connection
+        disconnectSocket();
+      }
+
       await axios.post(
         `${BASE_URL}/logout`,
         {},
