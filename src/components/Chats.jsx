@@ -201,7 +201,7 @@ const Chats = () => {
     }
 
     // ── messageReceived ────────────────────────────────────────────────────
-    const handleIncomingMessage = ({ _id, firstName, text, senderId, createdAt }) => {
+    const handleIncomingMessage = ({ _id, firstName, text, senderId, targetUserId, createdAt, status }) => {
       const timeStr = createdAt
         ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -218,14 +218,15 @@ const Chats = () => {
           // If it's our own message, check if we have a matching optimistic message to update
           if (isMe) {
             const index = prev.findIndex(
-              (m) => m.sender === "me" && (m.status === "sent" || m.status === "delivered") && m.text === text
+              (m) => m.sender === "me" && m.text === text && (m.status === "sent" || m.status === "delivered")
             );
             if (index !== -1) {
               const updated = [...prev];
               updated[index] = {
                 ...updated[index],
                 id: _id || updated[index].id,
-                status: updated[index].status === "read" ? "read" : "delivered",
+                // Only upgrade status if explicitly provided by server, otherwise keep existing (sent)
+                status: status || updated[index].status,
               };
               return updated;
             }
@@ -238,7 +239,7 @@ const Chats = () => {
             firstName,
             text,
             time: timeStr,
-            status: isMe ? "delivered" : "read",
+            status: isMe ? (status || "sent") : "read",
           };
 
           return [...prev, incomingMsg];
@@ -293,6 +294,8 @@ const Chats = () => {
 
     // ── newNotification (for messages in OTHER conversations) ──────────────
     const handleNewNotification = ({ senderId, text, createdAt }) => {
+      // ⛔ Never update or notify for messages sent by ourselves!
+      if (String(senderId) === String(currentUserId)) return;
       if (String(activeContactIdRef.current) === String(senderId)) return;
       const timeStr = createdAt
         ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -307,12 +310,38 @@ const Chats = () => {
       );
     };
 
-    // ── messageSent ack: backend confirmed save → flip sender's msg to 'delivered' ──
-    const handleMessageSent = ({ tempId, msgId }) => {
+    // ── messageSent ack from backend with real delivery status ──────────────
+    const handleMessageSent = ({ tempId, msgId, status }) => {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === tempId ? { ...m, id: msgId || m.id, status: "delivered" } : m
+          m.id === tempId
+            ? { ...m, id: msgId || m.id, status: status || (m.status === "read" ? "read" : "sent") }
+            : m
         )
+      );
+    };
+
+    // ── messagesDelivered: recipient just logged in → flip all 'sent' msgs to 'delivered' ──
+    const handleMessagesDelivered = ({ recipientId }) => {
+      if (String(recipientId) === String(activeContactIdRef.current)) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.sender === "me" && m.status === "sent" ? { ...m, status: "delivered" } : m
+          )
+        );
+      }
+    };
+
+    // ── userOnline / userOffline presence events ───────────────────────────
+    const handleUserOnline = ({ userId }) => {
+      setContacts((prev) =>
+        prev.map((c) => (String(c._id) === String(userId) ? { ...c, isOnline: true } : c))
+      );
+    };
+
+    const handleUserOffline = ({ userId }) => {
+      setContacts((prev) =>
+        prev.map((c) => (String(c._id) === String(userId) ? { ...c, isOnline: false } : c))
       );
     };
 
@@ -339,14 +368,12 @@ const Chats = () => {
 
     // ── chatCleared: other user or backend cleared the conversation ─────────
     const handleChatCleared = ({ targetUserId, userId }) => {
-      // If the cleared conversation is the one currently open
       if (
         String(activeContactIdRef.current) === String(targetUserId) ||
         String(activeContactIdRef.current) === String(userId)
       ) {
         setMessages([]);
       }
-      // Clear sidebar preview for that contact
       const contactIdToClear =
         String(userId) === String(currentUserId) ? targetUserId : userId;
       if (contactIdToClear) {
@@ -362,6 +389,9 @@ const Chats = () => {
 
     socket.on("messageReceived", handleIncomingMessage);
     socket.on("messageSent", handleMessageSent);
+    socket.on("messagesDelivered", handleMessagesDelivered);
+    socket.on("userOnline", handleUserOnline);
+    socket.on("userOffline", handleUserOffline);
     socket.on("messagesRead", handleMessagesRead);
     socket.on("newNotification", handleNewNotification);
     socket.on("typing", handleUserTyping);
@@ -372,6 +402,9 @@ const Chats = () => {
       socket.off("connect", joinPersonalRoom);
       socket.off("messageReceived", handleIncomingMessage);
       socket.off("messageSent", handleMessageSent);
+      socket.off("messagesDelivered", handleMessagesDelivered);
+      socket.off("userOnline", handleUserOnline);
+      socket.off("userOffline", handleUserOffline);
       socket.off("messagesRead", handleMessagesRead);
       socket.off("newNotification", handleNewNotification);
       socket.off("typing", handleUserTyping);

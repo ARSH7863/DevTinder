@@ -72,6 +72,9 @@ const Body = () => {
 
     // Handle incoming notification across the entire app
     const handleNewNotification = ({ senderId, firstName, text, createdAt }) => {
+      // ⛔ Never show toast notification for messages sent by ourselves!
+      if (String(senderId) === String(userData?._id)) return;
+
       // If user is currently looking at this specific chat, do not show toast
       const currentPath = window.location.pathname;
       const searchParams = new URLSearchParams(window.location.search);
