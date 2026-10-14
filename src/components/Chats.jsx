@@ -137,7 +137,8 @@ const Chats = () => {
             firstName,
             text: msg.text,
             time: timeStr,
-            status: "read",
+            // Messages loaded from DB history are already read by both sides
+            status: String(senderId) === String(currentUserId) ? "read" : "read",
           };
         });
 
@@ -200,22 +201,42 @@ const Chats = () => {
     }
 
     // ── messageReceived ────────────────────────────────────────────────────
-    const handleIncomingMessage = ({ firstName, text, senderId, createdAt }) => {
+    const handleIncomingMessage = ({ _id, firstName, text, senderId, createdAt }) => {
       const timeStr = createdAt
         ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-      const incomingMsg = {
-        id: "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
-        sender: String(senderId) === String(currentUserId) ? "me" : "them",
-        senderId,
-        firstName,
-        text,
-        time: timeStr,
-        status: "read",
-      };
+      const isMe = String(senderId) === String(currentUserId);
 
-      setMessages((prev) => [...prev, incomingMsg]);
+      setMessages((prev) => {
+        // If it's our own message, check if we have a matching optimistic message to update
+        if (isMe) {
+          const index = prev.findIndex(
+            (m) => m.sender === "me" && (m.status === "sent" || m.status === "delivered") && m.text === text
+          );
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = {
+              ...updated[index],
+              id: _id || updated[index].id,
+              status: updated[index].status === "read" ? "read" : "delivered",
+            };
+            return updated;
+          }
+        }
+
+        const incomingMsg = {
+          id: _id || "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
+          sender: isMe ? "me" : "them",
+          senderId,
+          firstName,
+          text,
+          time: timeStr,
+          status: isMe ? "delivered" : "read",
+        };
+
+        return [...prev, incomingMsg];
+      });
 
       // Clear typing indicator when sender's message arrives
       if (String(senderId) === String(activeContactIdRef.current)) {
@@ -223,7 +244,7 @@ const Chats = () => {
       }
 
       // Notify if message is from the other person
-      if (String(senderId) !== String(currentUserId)) {
+      if (!isMe) {
         playIncomingMessageSound();
 
         if (notificationToastTimerRef.current) {
@@ -236,6 +257,14 @@ const Chats = () => {
           try {
             new Notification(`${firstName || "New Message"} - DevTinder`, { body: text, icon: "/favicon.ico" });
           } catch (e) { /* silent */ }
+        }
+
+        // Tell the sender their message has been read (recipient is actively viewing this chat)
+        if (String(senderId) === String(activeContactIdRef.current) && socketRef.current?.connected) {
+          socketRef.current.emit("markRead", {
+            readerId: currentUserId,
+            senderId,
+          });
         }
       }
 
@@ -266,6 +295,27 @@ const Chats = () => {
       );
     };
 
+    // ── messageSent ack: backend confirmed save → flip sender's msg to 'delivered' ──
+    const handleMessageSent = ({ tempId, msgId }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId ? { ...m, id: msgId || m.id, status: "delivered" } : m
+        )
+      );
+    };
+
+    // ── messagesRead: recipient opened the chat → flip all my msgs to 'read' ──────
+    const handleMessagesRead = ({ readerId }) => {
+      // readerId is the OTHER person who just read our messages
+      if (String(readerId) === String(activeContactIdRef.current)) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.sender === "me" && m.status !== "read" ? { ...m, status: "read" } : m
+          )
+        );
+      }
+    };
+
     // ── typing ────────────────────────────────────────────────────────────
     const handleUserTyping = (data) => {
       if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(true);
@@ -276,6 +326,8 @@ const Chats = () => {
     };
 
     socket.on("messageReceived", handleIncomingMessage);
+    socket.on("messageSent", handleMessageSent);
+    socket.on("messagesRead", handleMessagesRead);
     socket.on("newNotification", handleNewNotification);
     socket.on("typing", handleUserTyping);
     socket.on("stopTyping", handleUserStopTyping);
@@ -283,6 +335,8 @@ const Chats = () => {
     return () => {
       socket.off("connect", joinPersonalRoom);
       socket.off("messageReceived", handleIncomingMessage);
+      socket.off("messageSent", handleMessageSent);
+      socket.off("messagesRead", handleMessagesRead);
       socket.off("newNotification", handleNewNotification);
       socket.off("typing", handleUserTyping);
       socket.off("stopTyping", handleUserStopTyping);
@@ -303,6 +357,12 @@ const Chats = () => {
         targetUserId: activeContactId,
       });
       console.log("✅ joinChat emitted for:", activeContactId);
+
+      // Also tell the active contact we have read/opened their messages
+      socket.emit("markRead", {
+        readerId: loggedInUser._id,
+        senderId: activeContactId,
+      });
     };
 
     if (socket.connected) {
@@ -411,13 +471,28 @@ const Chats = () => {
       isTypingSentRef.current = false;
     }
 
-    // Emit message to backend socket
+    // Build optimistic message with 'sent' status (single grey tick)
+    const tempId = "temp-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7);
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const optimisticMsg = {
+      id: tempId,
+      sender: "me",
+      senderId: currentUserId,
+      firstName: loggedInUser?.firstName || "Developer",
+      text: textToSend,
+      time: timeStr,
+      status: "sent", // ← single grey tick until backend acks
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    // Emit message to backend socket (include tempId so backend can ack it)
     if (socketRef.current) {
       socketRef.current.emit("sendMessage", {
         firstName: loggedInUser?.firstName || "Developer",
         userId: currentUserId,
         targetUserId: activeContact._id,
         text: textToSend,
+        tempId, // backend echoes this back in 'messageSent' ack
       });
     }
 
@@ -838,11 +913,20 @@ const Chats = () => {
                           <span>{msg.time}</span>
                           {isMe && (
                             <span
-                              className={`text-[12px] font-bold ${
-                                msg.status === "read" ? "text-[#53bdeb]" : "text-base-content/40"
+                              className={`text-[12px] font-bold leading-none ${
+                                msg.status === "read"
+                                  ? "text-[#53bdeb]"        // blue  ✓✓ = seen
+                                  : "text-base-content/40"  // grey  ✓ or ✓✓
                               }`}
+                              title={
+                                msg.status === "read"
+                                  ? "Seen"
+                                  : msg.status === "delivered"
+                                  ? "Delivered"
+                                  : "Sent"
+                              }
                             >
-                              ✓✓
+                              {msg.status === "sent" ? "✓" : "✓✓"}
                             </span>
                           )}
                         </div>
