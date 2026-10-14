@@ -207,36 +207,43 @@ const Chats = () => {
         : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
       const isMe = String(senderId) === String(currentUserId);
+      const isForActiveChat =
+        isMe ||
+        String(senderId) === String(activeContactIdRef.current) ||
+        (targetUserId && String(targetUserId) === String(activeContactIdRef.current));
 
-      setMessages((prev) => {
-        // If it's our own message, check if we have a matching optimistic message to update
-        if (isMe) {
-          const index = prev.findIndex(
-            (m) => m.sender === "me" && (m.status === "sent" || m.status === "delivered") && m.text === text
-          );
-          if (index !== -1) {
-            const updated = [...prev];
-            updated[index] = {
-              ...updated[index],
-              id: _id || updated[index].id,
-              status: updated[index].status === "read" ? "read" : "delivered",
-            };
-            return updated;
+      // Only append to active message window if it belongs to the currently open conversation!
+      if (isForActiveChat) {
+        setMessages((prev) => {
+          // If it's our own message, check if we have a matching optimistic message to update
+          if (isMe) {
+            const index = prev.findIndex(
+              (m) => m.sender === "me" && (m.status === "sent" || m.status === "delivered") && m.text === text
+            );
+            if (index !== -1) {
+              const updated = [...prev];
+              updated[index] = {
+                ...updated[index],
+                id: _id || updated[index].id,
+                status: updated[index].status === "read" ? "read" : "delivered",
+              };
+              return updated;
+            }
           }
-        }
 
-        const incomingMsg = {
-          id: _id || "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
-          sender: isMe ? "me" : "them",
-          senderId,
-          firstName,
-          text,
-          time: timeStr,
-          status: isMe ? "delivered" : "read",
-        };
+          const incomingMsg = {
+            id: _id || "msg-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
+            sender: isMe ? "me" : "them",
+            senderId,
+            firstName,
+            text,
+            time: timeStr,
+            status: isMe ? "delivered" : "read",
+          };
 
-        return [...prev, incomingMsg];
-      });
+          return [...prev, incomingMsg];
+        });
+      }
 
       // Clear typing indicator when sender's message arrives
       if (String(senderId) === String(activeContactIdRef.current)) {
@@ -330,12 +337,36 @@ const Chats = () => {
       if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(false);
     };
 
+    // ── chatCleared: other user or backend cleared the conversation ─────────
+    const handleChatCleared = ({ targetUserId, userId }) => {
+      // If the cleared conversation is the one currently open
+      if (
+        String(activeContactIdRef.current) === String(targetUserId) ||
+        String(activeContactIdRef.current) === String(userId)
+      ) {
+        setMessages([]);
+      }
+      // Clear sidebar preview for that contact
+      const contactIdToClear =
+        String(userId) === String(currentUserId) ? targetUserId : userId;
+      if (contactIdToClear) {
+        setContacts((prev) =>
+          prev.map((c) =>
+            String(c._id) === String(contactIdToClear)
+              ? { ...c, lastMessage: "", lastMessageTime: "" }
+              : c
+          )
+        );
+      }
+    };
+
     socket.on("messageReceived", handleIncomingMessage);
     socket.on("messageSent", handleMessageSent);
     socket.on("messagesRead", handleMessagesRead);
     socket.on("newNotification", handleNewNotification);
     socket.on("typing", handleUserTyping);
     socket.on("stopTyping", handleUserStopTyping);
+    socket.on("chatCleared", handleChatCleared);
 
     return () => {
       socket.off("connect", joinPersonalRoom);
@@ -345,6 +376,7 @@ const Chats = () => {
       socket.off("newNotification", handleNewNotification);
       socket.off("typing", handleUserTyping);
       socket.off("stopTyping", handleUserStopTyping);
+      socket.off("chatCleared", handleChatCleared);
     };
   }, [loggedInUser?._id]); // ← stable: only re-runs if user changes
 
@@ -375,6 +407,14 @@ const Chats = () => {
     } else {
       socket.once("connect", doJoin);
     }
+
+    return () => {
+      socket.emit("leaveChat", {
+        userId: loggedInUser._id,
+        targetUserId: activeContactId,
+      });
+      console.log("👋 leaveChat emitted for:", activeContactId);
+    };
   }, [activeContactId, loggedInUser?._id]);
 
   // Scroll to bottom on message update or typing
@@ -517,12 +557,22 @@ const Chats = () => {
             : c
         )
       );
+
+      // Emit clearChat via socket for real-time clearance
+      if (socketRef.current?.connected && loggedInUser?._id) {
+        socketRef.current.emit("clearChat", {
+          userId: loggedInUser._id,
+          targetUserId: activeContactId,
+        });
+      }
+
+      // Also persist clear via REST DELETE request
       try {
         await axios.delete(`${BASE_URL}/chat/${activeContactId}`, {
           withCredentials: true,
         });
       } catch (e) {
-        // Fallback / silent if delete endpoint isn't supported yet on backend
+        console.error("Failed to delete chat via REST:", e);
       }
     }
   };
