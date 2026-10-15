@@ -238,8 +238,9 @@ const Chats = () => {
       const isMe = String(senderId) === String(currentUserId);
       const isForActiveChat =
         isMe ||
-        String(senderId) === String(activeContactIdRef.current) ||
-        (targetUserId && String(targetUserId) === String(activeContactIdRef.current));
+        (activeContactIdRef.current &&
+          (String(senderId) === String(activeContactIdRef.current) ||
+            (targetUserId && String(targetUserId) === String(activeContactIdRef.current))));
 
       // Only append to active message window if it belongs to the currently open conversation!
       if (isForActiveChat) {

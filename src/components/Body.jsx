@@ -81,7 +81,7 @@ const Body = () => {
       const activeParam = searchParams.get("userId");
       const isChattingWithSender =
         currentPath.includes(`/chat/${senderId}`) ||
-        (currentPath.startsWith("/chat") && (activeParam === String(senderId) || !activeParam));
+        (currentPath.startsWith("/chat") && activeParam && activeParam === String(senderId));
 
       if (isChattingWithSender) return;
 
