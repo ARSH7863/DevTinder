@@ -7,10 +7,12 @@ const isLocalhost =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-// On localhost, direct to 7777. On Netlify or production, point directly to EC2 backend IP
+// On localhost -> http://localhost:7777, on Netlify -> Cloudflare HTTPS tunnel to EC2
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  (isLocalhost ? "http://localhost:7777" : "http://13.61.17.142");
+  (isLocalhost
+    ? "http://localhost:7777"
+    : "https://hospitality-rotation-easy-ste.trycloudflare.com");
 
 export const createSocketConnection = () => {
   if (!socket) {
