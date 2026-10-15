@@ -311,14 +311,28 @@ const Chats = () => {
         }
       }
 
-      // Update sidebar last message preview
+      // Update sidebar last message preview & unread count
       setContacts((prev) =>
-        prev.map((c) =>
-          String(c._id) === String(senderId) ||
-          (String(senderId) === String(currentUserId) && String(c._id) === String(activeContactIdRef.current))
-            ? { ...c, lastMessage: text, lastMessageTime: timeStr }
-            : c
-        )
+        prev.map((c) => {
+          if (String(c._id) === String(senderId)) {
+            return {
+              ...c,
+              lastMessage: text,
+              lastMessageTime: timeStr,
+              unreadCount:
+                String(activeContactIdRef.current) === String(senderId)
+                  ? 0
+                  : (c.unreadCount || 0) + 1,
+            };
+          }
+          if (
+            String(senderId) === String(currentUserId) &&
+            String(c._id) === String(activeContactIdRef.current)
+          ) {
+            return { ...c, lastMessage: text, lastMessageTime: timeStr };
+          }
+          return c;
+        })
       );
     };
 
