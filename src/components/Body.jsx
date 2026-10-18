@@ -22,8 +22,14 @@ const Body = () => {
 
   const fetchUser = async () => {
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlToken = searchParams.get("token") || searchParams.get("oauth_token");
+      const storedToken = localStorage.getItem("devtinder_token") || urlToken;
+      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
       const res = await axios.get(`${BASE_URL}/profile/view`, {
         withCredentials: true,
+        headers,
       });
       const user = res?.data?.data || res?.data?.user || res?.data;
       dispatch(addUser(user));

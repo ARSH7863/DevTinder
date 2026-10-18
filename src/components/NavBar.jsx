@@ -63,6 +63,8 @@ const NavBar = () => {
           withCredentials: true,
         },
       );
+      localStorage.removeItem("devtinder_token");
+      delete axios.defaults.headers.common["Authorization"];
       dispatch(removeUser());
       dispatch(removeConnections());
       dispatch(clearRequests());

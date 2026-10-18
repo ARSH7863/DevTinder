@@ -24,6 +24,10 @@ const Login = () => {
 
   useEffect(() => {
     const oauthError = searchParams.get("error");
+    const oauthToken = searchParams.get("token") || searchParams.get("oauth_token");
+    const oauthSuccess = searchParams.get("oauth_success");
+
+    // 1. If backend redirected with an error
     if (oauthError) {
       if (oauthError === "OAuthFailed" || oauthError === "GitHubAuthError") {
         setError("GitHub authorization failed. Please try again.");
@@ -34,8 +38,39 @@ const Login = () => {
       } else {
         setError(oauthError.replace(/([A-Z])/g, " $1").trim() || "OAuth login failed.");
       }
+      return;
     }
-  }, [searchParams]);
+
+    // 2. If backend passed a token or oauth redirect completed, fetch and log user in
+    const authenticateOAuthUser = async () => {
+      if (oauthToken) {
+        localStorage.setItem("devtinder_token", oauthToken);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${oauthToken}`;
+      }
+      try {
+        setLoading(true);
+        const headers = oauthToken ? { Authorization: `Bearer ${oauthToken}` } : {};
+        const res = await axios.get(`${BASE_URL}/profile/view`, {
+          withCredentials: true,
+          headers,
+        });
+        const user = res?.data?.data || res?.data?.user || res?.data;
+        if (user) {
+          dispatch(addUser(user));
+          navigate("/", { replace: true });
+        }
+      } catch (err) {
+        console.error("OAuth profile fetch failed:", err);
+        setError("Session verification failed. Please try logging in again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (oauthToken || oauthSuccess) {
+      authenticateOAuthUser();
+    }
+  }, [searchParams, dispatch, navigate]);
 
   const handleGithubLogin = () => {
     // Redirects to backend OAuth endpoint (/auth/github locally, or /api/auth/github on EC2)
