@@ -204,6 +204,7 @@ const Chats = () => {
   // Runs ONCE per user login. Registers all event listeners on the singleton
   // socket and never tears them down on contact switch — preventing missed msgs.
   useEffect(() => {
+    console.log("Current user for chat socket:", loggedInUser);
     const currentUserId = loggedInUser?._id;
     if (!currentUserId) return;
 
