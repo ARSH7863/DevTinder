@@ -231,7 +231,7 @@ const Chats = () => {
     }
 
     // ── messageReceived ────────────────────────────────────────────────────
-    const handleIncomingMessage = ({ _id, firstName, text, senderId, targetUserId, createdAt, status }) => {
+    const handleIncomingMessage = ({ _id, tempId, firstName, text, senderId, targetUserId, createdAt, status }) => {
       const timeStr = createdAt
         ? new Date(createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -243,24 +243,33 @@ const Chats = () => {
           (String(senderId) === String(activeContactIdRef.current) ||
             (targetUserId && String(targetUserId) === String(activeContactIdRef.current))));
 
-      // Only append to active message window if it belongs to the currently open conversation!
       if (isForActiveChat) {
         setMessages((prev) => {
+          // Prevent duplicates by message ID
+          if (_id && prev.some((m) => m.id === _id)) {
+            return prev;
+          }
           // If it's our own message, check if we have a matching optimistic message to update
           if (isMe) {
             const index = prev.findIndex(
-              (m) => m.sender === "me" && m.text === text && (m.status === "sent" || m.status === "delivered")
+              (m) =>
+                (tempId && m.id === tempId) ||
+                (m.sender === "me" && m.text === text && (m.status === "sent" || m.status === "delivered"))
             );
             if (index !== -1) {
               const updated = [...prev];
               updated[index] = {
                 ...updated[index],
                 id: _id || updated[index].id,
-                // Only upgrade status if explicitly provided by server, otherwise keep existing (sent)
                 status: status || updated[index].status,
               };
               return updated;
             }
+          }
+
+          // Also guard if message already exists with same sender and text at the same time
+          if (prev.some((m) => m.senderId === senderId && m.text === text && m.time === timeStr)) {
+            return prev;
           }
 
           const incomingMsg = {
@@ -272,7 +281,6 @@ const Chats = () => {
             time: timeStr,
             status: isMe ? (status || "sent") : "read",
           };
-
           return [...prev, incomingMsg];
         });
       }
