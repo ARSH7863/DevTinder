@@ -120,15 +120,15 @@ const Chats = () => {
     fetchConnections();
   }, [dispatch, queryUserId]);
 
-  // Keep activeContactId in sync if query parameter changes
+  // Keep activeContactId in sync only on initial load or URL change
   useEffect(() => {
-    if (queryUserId && contacts.length > 0) {
-      const match = contacts.find((c) => c._id === queryUserId);
+    if (queryUserId && contacts.length > 0 && !activeContactId) {
+      const match = contacts.find((c) => String(c._id) === String(queryUserId));
       if (match) {
         setActiveContactId(match._id);
       }
     }
-  }, [queryUserId, contacts]);
+  }, [queryUserId, contacts.length]);
 
   // Fetch chat history from DB whenever active contact changes
   useEffect(() => {
@@ -239,9 +239,7 @@ const Chats = () => {
       const isMe = String(senderId) === String(currentUserId);
       const isForActiveChat =
         isMe ||
-        (activeContactIdRef.current &&
-          (String(senderId) === String(activeContactIdRef.current) ||
-            (targetUserId && String(targetUserId) === String(activeContactIdRef.current))));
+        (activeContactIdRef.current && String(senderId) === String(activeContactIdRef.current));
 
       if (isForActiveChat) {
         setMessages((prev) => {
