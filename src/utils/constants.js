@@ -8,6 +8,17 @@ export const BASE_URL =
     ? "http://localhost:7777"
     : "/api");
 
+import axios from "axios";
+
+// Automatically attach Bearer token from localStorage to EVERY outgoing request
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token") || localStorage.getItem("devtinder_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const DEFAULT_USER_AVATAR = "/firstTimeUser.jpg";
 
 export const getCleanAvatar = (url) => {

@@ -44,6 +44,7 @@ const Login = () => {
     // 2. If backend passed a token or oauth redirect completed, fetch and log user in
     const authenticateOAuthUser = async () => {
       if (oauthToken) {
+        localStorage.setItem("token", oauthToken);
         localStorage.setItem("devtinder_token", oauthToken);
         axios.defaults.headers.common["Authorization"] = `Bearer ${oauthToken}`;
       }
