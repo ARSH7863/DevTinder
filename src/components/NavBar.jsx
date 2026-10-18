@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 import { removeUser } from "../utils/userSlice";
 import { removeConnections } from "../utils/connectionSlice";
 import { addRequests, clearRequests } from "../utils/requestSlice";
@@ -240,9 +240,7 @@ const NavBar = () => {
                 <div className="w-10 rounded-full">
                   <img
                     alt="User avatar"
-                    src={
-                      user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR
-                    }
+                    src={getCleanAvatar(user?.photoURL || user?.photoUrl)}
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = DEFAULT_USER_AVATAR;

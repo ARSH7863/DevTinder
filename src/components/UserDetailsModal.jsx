@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { DEFAULT_USER_AVATAR } from "../utils/constants";
+import { DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 
 const SKILLS_COLORS = [
   "badge-primary",
@@ -37,7 +37,7 @@ const UserDetailsModal = ({
     ? user.skills.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
 
-  const photo = user.photoURL || user.photoUrl || DEFAULT_USER_AVATAR;
+  const photo = getCleanAvatar(user.photoURL || user.photoUrl);
 
   return (
     <div

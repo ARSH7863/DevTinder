@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 import { addConnections } from "../utils/connectionSlice";
 import { createSocketConnection, playIncomingMessageSound } from "../utils/socket";
 import { resetUnreadCount } from "../utils/chatNotificationSlice";
@@ -92,7 +92,7 @@ const Chats = () => {
             _id: u._id,
             firstName: u.firstName || "Developer",
             lastName: u.lastName || "",
-            photoUrl: u.photoUrl || u.photoURL || DEFAULT_USER_AVATAR,
+            photoUrl: getCleanAvatar(u.photoUrl || u.photoURL),
             about: u.about || u.skills?.slice(0, 3).join(", ") || "",
             membershipType: u.membershipType,
             isOnline: !!u.isOnline,
@@ -729,7 +729,7 @@ const Chats = () => {
               <div className="avatar">
                 <div className="w-10 h-10 rounded-full ring ring-primary/30">
                   <img
-                    src={loggedInUser?.photoUrl || loggedInUser?.photoURL || DEFAULT_USER_AVATAR}
+                    src={getCleanAvatar(loggedInUser?.photoUrl || loggedInUser?.photoURL)}
                     alt="My avatar"
                   />
                 </div>

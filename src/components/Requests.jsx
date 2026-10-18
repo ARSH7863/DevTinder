@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 import { addRequests, removeRequest } from "../utils/requestSlice";
 import { removeConnections } from "../utils/connectionSlice";
 import { removeUser } from "../utils/userSlice";
@@ -378,11 +378,7 @@ const Requests = () => {
                       <div className="avatar shrink-0 relative">
                         <div className="w-16 h-16 rounded-full ring-2 ring-primary/20 ring-offset-2 ring-offset-base-100 overflow-hidden">
                           <img
-                            src={
-                              sender.photoURL ||
-                              sender.photoUrl ||
-                              DEFAULT_USER_AVATAR
-                            }
+                            src={getCleanAvatar(sender.photoURL || sender.photoUrl)}
                             alt={senderName}
                             className="w-full h-full object-cover"
                             onError={(e) => {

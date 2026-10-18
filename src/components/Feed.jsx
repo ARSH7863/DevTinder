@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "re
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { BASE_URL, DEFAULT_USER_AVATAR } from "../utils/constants";
+import { BASE_URL, DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 import { addFeed, removeUserFromFeed, restoreUserToFeed } from "../utils/feedSlice";
 import { removeUser } from "../utils/userSlice";
 import { sendConnectionRequest } from "../utils/requestApi";
@@ -218,7 +218,7 @@ const UserCard = forwardRef(
         {/* Photo */}
         <figure className="relative h-72 bg-base-200 overflow-hidden rounded-t-3xl pointer-events-none">
           <img
-            src={user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR}
+            src={getCleanAvatar(user?.photoURL || user?.photoUrl)}
             alt={`${user?.firstName} ${user?.lastName}`}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             draggable={false}
@@ -471,7 +471,7 @@ const PreviewCard = ({ user }) => {
       {/* Photo */}
       <figure className="relative h-72 bg-base-200 overflow-hidden">
         <img
-          src={user?.photoURL || user?.photoUrl || DEFAULT_USER_AVATAR}
+          src={getCleanAvatar(user?.photoURL || user?.photoUrl)}
           alt={`${user?.firstName} ${user?.lastName}`}
           className="w-full h-full object-cover"
           draggable={false}

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
 import { useNavigate } from "react-router-dom";
-import { DEFAULT_USER_AVATAR } from "../utils/constants";
+import { DEFAULT_USER_AVATAR, getCleanAvatar } from "../utils/constants";
 
 const MatchCelebrationModal = ({ isOpen, onClose, matchedUser, currentUser }) => {
   const navigate = useNavigate();
@@ -60,10 +60,8 @@ const MatchCelebrationModal = ({ isOpen, onClose, matchedUser, currentUser }) =>
 
   if (!isOpen || !matchedUser) return null;
 
-  const currentAvatar =
-    currentUser?.photoURL || currentUser?.photoUrl || DEFAULT_USER_AVATAR;
-  const matchedAvatar =
-    matchedUser?.photoURL || matchedUser?.photoUrl || DEFAULT_USER_AVATAR;
+  const currentAvatar = getCleanAvatar(currentUser?.photoURL || currentUser?.photoUrl);
+  const matchedAvatar = getCleanAvatar(matchedUser?.photoURL || matchedUser?.photoUrl);
 
   return (
     <div

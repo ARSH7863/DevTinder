@@ -175,7 +175,9 @@ const ChangePassword = () => {
 const EditProfile = ({ user }) => {
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
-  const [photoUrl, setPhotoUrl] = useState(user?.photoURL || user?.photoUrl || "");
+  const rawPhoto = user?.photoURL || user?.photoUrl || "";
+  const initialPhotoUrl = rawPhoto.includes("istockphoto.com") ? "" : rawPhoto;
+  const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
   const [age, setAge] = useState(user?.age || "");
   const [gender, setGender] = useState(user?.gender?.toLowerCase() || "");
   const [about, setAbout] = useState(user?.about || "");
