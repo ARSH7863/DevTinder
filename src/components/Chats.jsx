@@ -312,8 +312,9 @@ const Chats = () => {
       }
 
       // Update sidebar last message preview & unread count
-      setContacts((prev) =>
-        prev.map((c) => {
+      const contactToUpdate = isMe ? activeContactIdRef.current : senderId;
+      setContacts((prev) => {
+        const updated = prev.map((c) => {
           if (String(c._id) === String(senderId)) {
             return {
               ...c,
@@ -332,8 +333,17 @@ const Chats = () => {
             return { ...c, lastMessage: text, lastMessageTime: timeStr };
           }
           return c;
-        })
-      );
+        });
+        // Bubble the relevant contact to the top
+        if (contactToUpdate) {
+          const idx = updated.findIndex((c) => String(c._id) === String(contactToUpdate));
+          if (idx > 0) {
+            const [item] = updated.splice(idx, 1);
+            return [item, ...updated];
+          }
+        }
+        return updated;
+      });
     };
 
     // ── newNotification (for messages in OTHER conversations) ──────────────
@@ -507,6 +517,17 @@ const Chats = () => {
 
   const activeContact = contacts.find((c) => c._id === activeContactId) || null;
 
+  // ─── Bubble the contact with this id to index 0 ──────────────────────────
+  const bringToTop = (contactId) => {
+    setContacts((prev) => {
+      const idx = prev.findIndex((c) => String(c._id) === String(contactId));
+      if (idx <= 0) return prev; // already on top or not found
+      const updated = [...prev];
+      const [item] = updated.splice(idx, 1);
+      return [item, ...updated];
+    });
+  };
+
   const handleSelectContact = (id) => {
     // Clear any pending typing timer
     if (typingTimeoutRef.current) {
@@ -613,6 +634,21 @@ const Chats = () => {
       status: "sent", // ← single grey tick until backend acks
     };
     setMessages((prev) => [...prev, optimisticMsg]);
+
+    // Update sidebar preview + bring active contact to top immediately on send
+    setContacts((prev) => {
+      const updated = prev.map((c) =>
+        String(c._id) === String(activeContact._id)
+          ? { ...c, lastMessage: textToSend, lastMessageTime: timeStr }
+          : c
+      );
+      const idx = updated.findIndex((c) => String(c._id) === String(activeContact._id));
+      if (idx > 0) {
+        const [item] = updated.splice(idx, 1);
+        return [item, ...updated];
+      }
+      return updated;
+    });
 
     // Emit message to backend socket (include tempId so backend can ack it)
     if (socketRef.current) {
