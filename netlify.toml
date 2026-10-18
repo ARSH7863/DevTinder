@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "http://13.61.17.142/api/:splat"
+  to = "https://arsh-devtinder.duckdns.org/api/:splat"
   status = 200
   force = true
 
