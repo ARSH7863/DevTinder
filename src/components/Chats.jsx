@@ -288,26 +288,9 @@ const Chats = () => {
         setIsTyping(false);
       }
 
-      // Notify if message is from the other person AND NOT currently in this open chat
+      // Mark read if recipient is actively chatting
       if (!isMe) {
-        // If the message is from someone else than the active contact, show toast
         const isCurrentlyChatting = String(senderId) === String(activeContactIdRef.current);
-
-        if (!isCurrentlyChatting) {
-          playIncomingMessageSound();
-
-          if (notificationToastTimerRef.current) {
-            clearTimeout(notificationToastTimerRef.current);
-          }
-          setNotificationToast({ senderId, firstName: firstName || "Someone", text, time: timeStr });
-          notificationToastTimerRef.current = setTimeout(() => setNotificationToast(null), 4500);
-        }
-
-        if ("Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible") {
-          try {
-            new Notification(`${firstName || "New Message"} - DevTinder`, { body: text, icon: "/favicon.ico" });
-          } catch (e) { /* silent */ }
-        }
 
         // Tell the sender their message has been read (recipient is actively viewing this chat)
         if (isCurrentlyChatting && socketRef.current?.connected) {
@@ -1304,44 +1287,6 @@ const Chats = () => {
         />
       )}
 
-      {/* WhatsApp-Style Floating In-App Notification Toast */}
-      {notificationToast && (
-        <div className="fixed top-5 right-5 z-50 animate-bounce-short transition-all duration-300 max-w-sm w-full px-2">
-          <div
-            onClick={() => {
-              if (notificationToast.senderId) {
-                handleSelectContact(notificationToast.senderId);
-              }
-              setNotificationToast(null);
-            }}
-            className="flex items-center gap-3 bg-base-100/95 backdrop-blur-md border border-success/40 text-base-content p-3.5 rounded-2xl shadow-2xl cursor-pointer hover:bg-base-200/90 transition-all border-l-4 border-l-success"
-          >
-            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center text-success text-xl shrink-0">
-              💬
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <p className="font-bold text-xs sm:text-sm text-base-content truncate">
-                  {notificationToast.firstName}
-                </p>
-                <span className="text-[10px] text-base-content/50">{notificationToast.time}</span>
-              </div>
-              <p className="text-xs text-base-content/80 truncate mt-0.5">
-                {notificationToast.text}
-              </p>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setNotificationToast(null);
-              }}
-              className="btn btn-ghost btn-xs btn-circle text-base-content/50 hover:text-base-content"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
