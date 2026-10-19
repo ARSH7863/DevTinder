@@ -66,7 +66,9 @@ const Chats = () => {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const incomingTypingTimeoutRef = useRef(null);
   const isTypingSentRef = useRef(false);
+  const lastTypingPingRef = useRef(0);
   const notificationToastTimerRef = useRef(null);
 
   // Request browser Notification permission on mount
@@ -409,11 +411,25 @@ const Chats = () => {
 
     // ── typing ────────────────────────────────────────────────────────────
     const handleUserTyping = (data) => {
-      if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(true);
+      if (String(data?.userId) === String(activeContactIdRef.current)) {
+        setIsTyping(true);
+        // Clear any previous auto-dismiss timer and give it a healthy 4-second window
+        if (incomingTypingTimeoutRef.current) {
+          clearTimeout(incomingTypingTimeoutRef.current);
+        }
+        incomingTypingTimeoutRef.current = setTimeout(() => {
+          setIsTyping(false);
+        }, 4000);
+      }
     };
 
     const handleUserStopTyping = (data) => {
-      if (String(data?.userId) === String(activeContactIdRef.current)) setIsTyping(false);
+      if (String(data?.userId) === String(activeContactIdRef.current)) {
+        if (incomingTypingTimeoutRef.current) {
+          clearTimeout(incomingTypingTimeoutRef.current);
+        }
+        setIsTyping(false);
+      }
     };
 
     // ── chatCleared: other user or backend cleared the conversation ─────────
@@ -555,17 +571,19 @@ const Chats = () => {
     if (!socketRef.current || !activeContact || !currentUserId) return;
 
     if (value.trim()) {
-      // Emit typing event if not already emitted
-      if (!isTypingSentRef.current) {
+      const now = Date.now();
+      // Emit typing immediately if first keystroke OR every 2 seconds while continuous typing
+      if (!isTypingSentRef.current || now - lastTypingPingRef.current > 2000) {
         socketRef.current.emit("typing", {
           firstName: loggedInUser?.firstName || "Developer",
           userId: currentUserId,
           targetUserId: activeContact._id,
         });
         isTypingSentRef.current = true;
+        lastTypingPingRef.current = now;
       }
 
-      // Reset debounce timer to stop typing after 2 seconds of inactivity
+      // Reset debounce timer: stop typing only after 3.5 seconds of silence
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
@@ -578,9 +596,10 @@ const Chats = () => {
           });
         }
         isTypingSentRef.current = false;
-      }, 2000);
+        lastTypingPingRef.current = 0;
+      }, 3500);
     } else {
-      // Input was cleared
+      // Input was completely cleared
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
@@ -590,6 +609,7 @@ const Chats = () => {
           targetUserId: activeContact._id,
         });
         isTypingSentRef.current = false;
+        lastTypingPingRef.current = 0;
       }
     }
   };
