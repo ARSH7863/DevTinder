@@ -148,13 +148,15 @@ const Body = () => {
     );
   }
 
+  const isChatPage = location.pathname.startsWith("/chat");
+
   return (
-    <div className="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden relative">
+    <div className={`flex flex-col w-full max-w-full relative ${isChatPage ? "h-screen overflow-hidden" : "min-h-screen overflow-x-hidden"}`}>
       <NavBar />
-      <main className="flex-1 flex flex-col w-full max-w-full overflow-x-hidden">
+      <main className={`flex-1 flex flex-col w-full max-w-full ${isChatPage ? "overflow-hidden" : "overflow-x-hidden"}`}>
         <Outlet />
       </main>
-      <Footer />
+      {!isChatPage && <Footer />}
 
       {/* Global WhatsApp-Style In-App Floating Notification Banner */}
       {latestNotification && (

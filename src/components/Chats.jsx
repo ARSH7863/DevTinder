@@ -722,9 +722,9 @@ const Chats = () => {
   });
 
   return (
-    <div className="w-full h-[calc(100vh-68px)] max-w-7xl mx-auto p-2 sm:p-4 flex flex-col box-border">
+    <div className="w-full h-full flex-1 max-w-7xl mx-auto p-2 sm:p-3 flex flex-col box-border overflow-hidden">
       {/* Main Container Window */}
-      <div className="flex-1 w-full bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex overflow-hidden relative">
+      <div className="flex-1 w-full h-full bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex overflow-hidden relative">
         {/* ========================================================= */}
         {/* LEFT COLUMN: CONTACTS / CHAT LIST (WhatsApp Sidebar)     */}
         {/* ========================================================= */}
