@@ -6,6 +6,7 @@ import NavBar from "./NavBar";
 import Footer from "./Footer";
 import { BASE_URL } from "../utils/constants";
 import { addUser, removeUser } from "../utils/userSlice";
+import { prependToFeed } from "../utils/feedSlice";
 import { createSocketConnection, disconnectSocket, playIncomingMessageSound } from "../utils/socket";
 import { addNotification, clearLatestNotification } from "../utils/chatNotificationSlice";
 
@@ -133,10 +134,19 @@ const Body = () => {
       }
     };
 
+    // Real-time: when a new developer joins, immediately prepend them to the feed
+    const handleNewUserJoined = (newUser) => {
+      if (!newUser || !newUser._id) return;
+      if (String(newUser._id) === String(userData?._id)) return;
+      dispatch(prependToFeed(newUser));
+    };
+
     socket.on("newNotification", handleNewNotification);
+    socket.on("newUserJoined", handleNewUserJoined);
 
     return () => {
       socket.off("newNotification", handleNewNotification);
+      socket.off("newUserJoined", handleNewUserJoined);
     };
   }, [userData?._id, dispatch]);
 
