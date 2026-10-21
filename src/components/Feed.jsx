@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -74,7 +74,7 @@ const UserCard = forwardRef(
     const skills = Array.isArray(user?.skills) ? user.skills : [];
 
     // Derived values from drag position
-    const rotation = dragX * 0.12; // max ~12Â° at threshold
+    const rotation = dragX * 0.12; // max ~12 deg at threshold
     const likeOpacity = Math.min(Math.max(dragX / SWIPE_THRESHOLD, 0), 1);
     const nopeOpacity = Math.min(Math.max(-dragX / SWIPE_THRESHOLD, 0), 1);
 
@@ -270,7 +270,7 @@ const UserCard = forwardRef(
                   className="text-base leading-none"
                   title={user.membershipType.toLowerCase() === "gold" ? "Dev Elite (Gold)" : "Dev Pro (Silver)"}
                 >
-                  {user.membershipType.toLowerCase() === "gold" ? "ðŸ‘‘" : "ðŸ›¡ï¸"}
+                  {user.membershipType.toLowerCase() === "gold" ? "GOLD" : "PRO"}
                 </span>
               )}
               {user?.age && (
@@ -298,7 +298,7 @@ const UserCard = forwardRef(
                 {user.about}
               </p>
               <span className="text-xs text-primary font-medium opacity-80 group-hover/about:underline">
-                Read full bio â†’
+                Read full bio &rarr;
               </span>
             </div>
           )}
@@ -324,7 +324,7 @@ const UserCard = forwardRef(
             {/* Tinder-style Undo / Rewind Button */}
             <Tooltip
               text={canUndo ? "Undo last swipe" : "No swipes to undo"}
-              kbd={canUndo ? "âŒ«" : undefined}
+              kbd={canUndo ? "Backspace" : undefined}
               color="warning"
               position="top"
             >
@@ -361,7 +361,7 @@ const UserCard = forwardRef(
             </Tooltip>
 
             {/* Skip / Pass */}
-            <Tooltip text="Skip developer" kbd="â†" color="error" position="top">
+            <Tooltip text="Skip developer" kbd="Left" color="error" position="top">
               <button
                 type="button"
                 onClick={(e) => {
@@ -420,7 +420,7 @@ const UserCard = forwardRef(
             </Tooltip>
 
             {/* Like / Connect */}
-            <Tooltip text="Connect" kbd="â†’" color="success" position="top">
+            <Tooltip text="Connect" kbd="Right" color="success" position="top">
               <button
                 type="button"
                 onClick={(e) => {
@@ -785,7 +785,7 @@ const Feed = () => {
     return (
       <div className="flex-1 flex items-center justify-center bg-base-200/40 py-8 px-4">
         <div className="text-center flex flex-col items-center gap-3 p-8">
-          <div className="text-6xl">ðŸ”</div>
+          <div className="text-4xl font-bold opacity-30">[?]</div>
           <h2 className="text-2xl font-bold">No developers found</h2>
           <p className="text-base-content/60 text-sm max-w-xs">
             No developers to discover right now. Check back later for new connections.
@@ -807,7 +807,7 @@ const Feed = () => {
                 onClick={handleUndo}
                 className="btn btn-warning btn-outline btn-sm shadow"
               >
-                â†©ï¸ Undo Last Swipe
+                Undo Last Swipe
               </button>
             )}
           </div>
@@ -839,7 +839,7 @@ const Feed = () => {
         <p className="text-xs text-base-content/60 font-semibold uppercase tracking-wider">
           {feed.length} developer{feed.length !== 1 ? "s" : ""} left
         </p>
-        <span className="text-base-content/30">â€¢</span>
+        <span className="text-base-content/30">|</span>
         <Tooltip text="Preview Match Celebration Modal" color="primary" position="bottom">
           <button
             type="button"
@@ -850,14 +850,14 @@ const Feed = () => {
             className="btn btn-xs btn-ghost text-primary hover:bg-primary/10 gap-1 rounded-full"
             aria-label="Preview Match Celebration Modal"
           >
-            <span>ðŸŽ‰ Preview Match</span>
+            <span>Preview Match</span>
           </button>
         </Tooltip>
       </div>
 
       {/* Card stack */}
       <div className="relative w-80 sm:w-96">
-        {/* Ghost card 2 â€” furthest back */}
+        {/* Ghost card 2 - furthest back */}
         {feed.length > 2 && (
           <div
             className="absolute inset-0 card bg-base-100 border border-base-300 rounded-2xl pointer-events-none"
@@ -870,7 +870,7 @@ const Feed = () => {
           />
         )}
 
-        {/* Preview card â€” next developer waiting underneath */}
+        {/* Preview card - next developer waiting underneath */}
         {feed.length > 1 && feed[1] && <PreviewCard user={feed[1]} />}
 
         {/* Active top card */}
@@ -892,22 +892,22 @@ const Feed = () => {
       {/* Desktop Keyboard Shortcuts HUD */}
       <div className="hidden md:flex items-center gap-4 mt-6 px-4 py-2 rounded-full bg-base-100/80 backdrop-blur-md border border-base-300 shadow-sm text-xs text-base-content/75 select-none">
         <span className="flex items-center gap-1.5 font-medium">
-          <kbd className="kbd kbd-xs font-mono bg-base-200">â†</kbd>
+          <kbd className="kbd kbd-xs font-mono bg-base-200">Left</kbd>
           <span>Skip</span>
         </span>
-        <span className="text-base-content/30">â€¢</span>
+        <span className="text-base-content/30">|</span>
         <span className="flex items-center gap-1.5 font-medium">
-          <kbd className="kbd kbd-xs font-mono bg-base-200">âŒ« / Z</kbd>
+          <kbd className="kbd kbd-xs font-mono bg-base-200">Backspace / Z</kbd>
           <span>Undo</span>
         </span>
-        <span className="text-base-content/30">â€¢</span>
+        <span className="text-base-content/30">|</span>
         <span className="flex items-center gap-1.5 font-medium">
           <kbd className="kbd kbd-xs font-mono bg-base-200">Space</kbd>
           <span>Inspect Bio</span>
         </span>
-        <span className="text-base-content/30">â€¢</span>
+        <span className="text-base-content/30">|</span>
         <span className="flex items-center gap-1.5 font-medium">
-          <kbd className="kbd kbd-xs font-mono bg-base-200">â†’</kbd>
+          <kbd className="kbd kbd-xs font-mono bg-base-200">Right</kbd>
           <span>Connect</span>
         </span>
       </div>
@@ -944,10 +944,10 @@ const Feed = () => {
                 : "alert-error"
             }`}
           >
-            {toast.type === "like" && `ðŸ’š Liked ${toast.name}!`}
-            {toast.type === "skip" && `ðŸ‘‹ Skipped ${toast.name}`}
-            {toast.type === "undo" && `â†©ï¸ Restored ${toast.name}'s profile`}
-            {toast.type === "error" && `âš ï¸ ${toast.message || "Action failed"}`}
+            {toast.type === "like" && `Liked ${toast.name}!`}
+            {toast.type === "skip" && `Skipped ${toast.name}`}
+            {toast.type === "undo" && `Restored ${toast.name}'s profile`}
+            {toast.type === "error" && `${toast.message || "Action failed"}`}
           </div>
         </div>
       )}
